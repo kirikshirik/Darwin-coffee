@@ -54,8 +54,16 @@ PAYROLL_CONFLICTS = {
     # октябрь совпадает (79 952) — конфликта нет.
 }
 
-# Остаточный пробел: сентябрь 2025 — ФОТ нет ни в P&L-Excel, ни в этом отчёте.
-PAYROLL_STILL_MISSING = [date(2025, 9, 1)]
+# ФОТ за сентябрь 2025 получен отдельно от владельца (в дневном отчёте его нет).
+# Food cost за сентябрь неизвестен → в честном P&L берётся средний реальный food cost
+# за период окт–май (см. avg_food_cost), по решению владельца.
+PAYROLL_EXTRA: Dict[date, D] = {
+    date(2025, 9, 1): D("80600"),
+}
+
+# Остаточных пробелов по ФОТ больше нет: окт–май — дневной отчёт, сен 25 — от владельца,
+# июн–авг — из P&L-Excel.
+PAYROLL_STILL_MISSING: list = []
 
 
 def verify_control() -> bool:
@@ -63,3 +71,13 @@ def verify_control() -> bool:
     pay = sum((m["payroll"] for m in ACTUALS.values()), D("0"))
     fc = sum((m["food_cost"] for m in ACTUALS.values()), D("0"))
     return pay == CONTROL["payroll_total"] and fc == CONTROL["food_cost_total"]
+
+
+def avg_food_cost() -> D:
+    """Средний реальный food cost за месяц (окт–май), до рубля.
+
+    Оценка COGS для месяцев без дневного отчёта (сейчас — сентябрь 2025).
+    587 047 / 8 = 73 381 ₽.
+    """
+    total = sum((m["food_cost"] for m in ACTUALS.values()), D("0"))
+    return (total / len(ACTUALS)).quantize(D("1"))

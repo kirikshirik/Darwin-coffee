@@ -102,6 +102,9 @@ class Receipt(Base):
     sold_at: Mapped[datetime] = mapped_column(DateTime, index=True)
     total_sum: Mapped[Decimal] = mapped_column(MONEY)
     payment_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    # Кассир/бариста (из Эвотора — user_id документа). Для рейтинга бариста (Фаза 4).
+    # В реале это UUID сотрудника; имя резолвится через employees-эндпоинт (TODO).
+    cashier: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     business: Mapped["Business"] = relationship(back_populates="receipts")
     items: Mapped[List["ReceiptItem"]] = relationship(

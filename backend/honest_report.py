@@ -13,8 +13,8 @@ P&L из `darwin_data` (P&L-Excel) и показывает, насколько E
                                                  амортизация) — без PAYROLL и без OTHER
     Чистая      = Выручка − COGS − Операционка − ФОТ
 
-Месяцы без факта (июн–сен) считаются как в Excel (COGS-прокси = «Прочее»);
-сентябрь по-прежнему без ФОТ → флаг.
+Месяцы без дневного отчёта: июн–авг — COGS-прокси «Прочее»; сентябрь — ФОТ 80 600 ₽ от
+владельца + COGS = средний реальный food cost за окт–май. Пробелов по ФОТ нет.
 """
 from __future__ import annotations
 
@@ -52,7 +52,6 @@ def main() -> None:
 
     tot_rev = tot_cogs_real = naive_net = honest_net = ZERO
     cogs_real_rev = ZERO  # выручка месяцев, где COGS реальный (для честного %)
-    sep_flag = False
 
     for m in darwin_data.MONTHLY:
         period, rev, exp = m["period"], m["revenue"], m["expenses"]
@@ -72,13 +71,22 @@ def main() -> None:
             cogs_real_rev += rev
             src = "факт"
         else:
-            # нет дневного отчёта (июн–сен): считаем как в Excel, COGS-прокси = «Прочее»
+            # нет дневного отчёта (июн–сен): COGS-прокси = «Прочее» из Excel
             cogs = exp.get(C.OTHER, ZERO)
-            net = rev - sum(exp.values(), ZERO)
-            if C.PAYROLL not in exp:
+            extra = actuals_data.PAYROLL_EXTRA.get(period)
+            if extra is not None:
+                # ФОТ — факт от владельца; food cost неизвестен → средний реальный за окт–май
+                cogs = actuals_data.avg_food_cost()
+                operating = sum(
+                    (a for c, a in exp.items() if c not in (C.PAYROLL, C.OTHER)), ZERO
+                )
+                net = rev - cogs - operating - extra
+                src = "ФОТ факт + COGS-оценка"
+            elif C.PAYROLL not in exp:
+                net = rev - sum(exp.values(), ZERO)
                 src = "Excel ⚠️ нет ФОТ"
-                sep_flag = True
             else:
+                net = rev - sum(exp.values(), ZERO)
                 src = "Excel (прокси COGS)"
 
         honest_net += net
@@ -112,13 +120,23 @@ def main() -> None:
         diff = v["actual"] - v["monthly"]
         print(f"  {_label(d)}: Excel {rub(v['monthly'])} → факт {rub(v['actual'])} ({rub(diff)})")
 
-    if sep_flag:
+    if actuals_data.PAYROLL_STILL_MISSING:
         avg_pay = actuals_data.CONTROL["payroll_total"] / len(actuals_data.ACTUALS)
         with_sep = honest_net - avg_pay
         miss = ", ".join(_label(d) for d in actuals_data.PAYROLL_STILL_MISSING)
         print(f"\nОстаточный пробел: ФОТ за {miss} нет ни в одном файле.")
         print(
             f"  Если оценить его средним ({rub(avg_pay)}), честная прибыль ≈ {rub(with_sep)}."
+        )
+    else:
+        sep = ", ".join(f"{_label(d)} {rub(v)}" for d, v in actuals_data.PAYROLL_EXTRA.items())
+        print(
+            f"\nПробелов по ФОТ больше нет: окт–май — дневной отчёт, июн–авг — P&L-Excel, "
+            f"сентябрь — от владельца ({sep})."
+        )
+        print(
+            f"  (COGS за сентябрь — оценка: средний реальный food cost окт–май = "
+            f"{rub(actuals_data.avg_food_cost())}.)"
         )
 
 
