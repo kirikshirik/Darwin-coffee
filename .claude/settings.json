@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import openpyxl; print\\('openpyxl', openpyxl.__version__\\)\")",
+      "Bash(python3 -c \"import pandas; print\\('pandas', pandas.__version__\\)\")",
+      "Bash(python3)",
+      "Bash(python3 -c \"import sqlalchemy; print\\('sqlalchemy', sqlalchemy.__version__\\)\")",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/python -m pip install -q --upgrade pip)",
+      "Bash(.venv/bin/python -m pip install -q -r requirements.txt)",
+      "Bash(.venv/bin/python -c \"import sqlalchemy; print\\('SQLAlchemy', sqlalchemy.__version__, 'установлен'\\)\")",
+      "Bash(.venv/bin/python -m backend.seed)",
+      "Bash(.venv/bin/python -m backend.report_demo)"
+    ]
+  }
+}
