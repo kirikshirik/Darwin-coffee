@@ -1,0 +1,28 @@
+[Unit]
+Description=Darwin Coffee — Telegram-бот (аналитика реальной прибыли)
+Documentation=file://__APP_DIR__/DEPLOY.md
+After=network-online.target
+Wants=network-online.target
+# Перезапускать, но не уходить в бесконечный краш-луп (TelegramConflictError и т.п.).
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+# .env подхватывается самим приложением (python-dotenv) из WorkingDirectory.
+ExecStart=__APP_DIR__/.venv/bin/python -m backend.bot.main
+Restart=always
+RestartSec=5
+
+# --- базовый hardening ---
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+# БД и WAL-файлы лежат в WorkingDirectory — даём на запись только её.
+ReadWritePaths=__APP_DIR__
+
+[Install]
+WantedBy=multi-user.target

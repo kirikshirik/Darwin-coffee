@@ -17,9 +17,11 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable, Mapping, Optional
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -32,6 +34,11 @@ MONEY_IN_KOPECKS = os.getenv("EVOTOR_MONEY_IN_KOPECKS", "0").strip() in ("1", "t
 CENT = Decimal("0.01")
 QTY = Decimal("0.001")
 ZERO = Decimal("0")
+
+# Эвотор отдаёт close_date в UTC (+0000), а колонка sold_at наивная и запросы бота
+# наивные. Приводим время к локальной TZ кофейни и убираем tzinfo — иначе ломается
+# сравнение naive/aware в SQLite и «прибыльные часы» съезжают на смещение UTC.
+LOCAL_TZ = ZoneInfo(os.getenv("EVOTOR_TZ", "Europe/Moscow"))
 
 
 def _money(value: object) -> Decimal:
@@ -59,16 +66,25 @@ def _get_any(d: Mapping, *keys: str, default=None):
 
 
 def _parse_dt(value: object) -> datetime:
-    """close_date Эвотора (ISO 8601, TZ +0000) → datetime. Z и +0000 поддержаны."""
+    """close_date Эвотора (ISO 8601, TZ +0000) → НАИВНЫЙ datetime в локальной TZ кофейни.
+
+    Z и +0000 поддержаны. Если время пришло с таймзоной — переводим в LOCAL_TZ и
+    срезаем tzinfo (см. комментарий к LOCAL_TZ). Наивное время оставляем как есть.
+    """
     if isinstance(value, datetime):
-        return value
-    s = str(value).strip()
-    s = s.replace("Z", "+00:00")
-    try:
-        return datetime.fromisoformat(s)
-    except ValueError:
-        # запасной разбор без TZ
-        return datetime.fromisoformat(s[:19])
+        dt = value
+    else:
+        s = str(value).strip().replace("Z", "+00:00")
+        # Эвотор отдаёт смещение как +0000 (без двоеточия) — Python 3.9 fromisoformat
+        # его не понимает и падает в запасной разбор, теряя TZ. Нормализуем → +00:00.
+        s = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", s)
+        try:
+            dt = datetime.fromisoformat(s)
+        except ValueError:
+            dt = datetime.fromisoformat(s[:19])  # запасной разбор без TZ
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(LOCAL_TZ).replace(tzinfo=None)
+    return dt
 
 
 def is_sale(doc: Mapping) -> bool:

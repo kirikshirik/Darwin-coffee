@@ -1,0 +1,19 @@
+[Unit]
+Description=Darwin Coffee — синк Эвотор → БД (товары + чеки)
+Documentation=file://__APP_DIR__/DEPLOY.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+# Инкрементальный синк: тянем последние дни, дедуп по receipt_uuid делает это
+# идемпотентным. 3 дней хватает, чтобы подобрать «опоздавшие»/отредактированные чеки.
+ExecStart=__APP_DIR__/.venv/bin/python -m backend.integrations.evotor.sync --days 3
+
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=__APP_DIR__

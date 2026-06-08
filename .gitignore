@@ -7,4 +7,9 @@ dist
 .venv/
 __pycache__/
 *.pyc
+
+# Локальная БД + WAL/SHM + бэкапы (на проде живёт в /opt/darwin, см. DEPLOY.md)
 darwin.db
+darwin.db-wal
+darwin.db-shm
+darwin.backup.db

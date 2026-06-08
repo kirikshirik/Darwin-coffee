@@ -73,6 +73,19 @@ def verify_control() -> bool:
     return pay == CONTROL["payroll_total"] and fc == CONTROL["food_cost_total"]
 
 
+def food_cost_ratio() -> D:
+    """Доля реального food cost в выручке за окт–май (COGS / выручка) ≈ 0.267.
+
+    Единственный обоснованный коэффициент себестоимости из фактических данных.
+    Синк Эвотора использует его как прокси COGS позиции (цена × ratio), пока не
+    заведено точное сопоставление рецептов к именам товаров (маржа по напиткам).
+    """
+    from backend import darwin_data  # локальный импорт: overlay не зависит от MONTHLY на уровне модуля
+
+    rev = sum((m["revenue"] for m in darwin_data.MONTHLY if m["period"] in ACTUALS), D("0"))
+    return (CONTROL["food_cost_total"] / rev) if rev else D("0")
+
+
 def avg_food_cost() -> D:
     """Средний реальный food cost за месяц (окт–май), до рубля.
 

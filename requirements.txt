@@ -10,6 +10,10 @@ httpx>=0.27
 aiogram>=3.4,<4.0
 APScheduler>=3.10,<4.0
 
+# Таймзоны для zoneinfo (MSK): на минимальном Linux-VPS системной tz-базы может
+# не быть — без неё ZoneInfo("Europe/Moscow") падает (mapping.py, scheduler.py).
+tzdata>=2024.1
+
 # Добавим по мере роста проекта:
 # alembic>=1.13         # миграции БД
-# psycopg[binary]>=3.1  # драйвер PostgreSQL (на проде вместо SQLite)
+# psycopg[binary]>=3.1  # драйвер PostgreSQL (на проде вместо SQLite, см. DEPLOY.md)

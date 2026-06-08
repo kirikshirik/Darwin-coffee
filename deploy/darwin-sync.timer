@@ -1,0 +1,13 @@
+[Unit]
+Description=Darwin Coffee — запуск синка Эвотора каждые 15 минут
+
+[Timer]
+# Первый синк — через 2 минуты после загрузки VPS, далее каждые 15 минут.
+OnBootSec=2min
+OnUnitActiveSec=15min
+# Если VPS был выключен в момент срабатывания — догнать пропущенный запуск.
+Persistent=true
+Unit=darwin-sync.service
+
+[Install]
+WantedBy=timers.target

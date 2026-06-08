@@ -153,11 +153,17 @@ def monthly_report(period: Optional[date] = None) -> PeriodReport:
 
 # --- чековые отчёты (из Эвотора) --------------------------------------------------
 def _operating_for_range(start: date, end: date) -> Dict[C, Decimal]:
-    """Помесячная операционка, раскиданная по дням периода [start, end] включительно."""
+    """Помесячная операционка, раскиданная по дням периода [start, end] включительно.
+
+    Для текущего/будущего месяца, которого ещё нет в Excel-P&L (`darwin_data`),
+    берём операционку последнего известного месяца — фикс. расходы (аренда, ФОТ,
+    налоги) стабильны. Иначе чековые отчёты живого месяца показывали бы opex=0 и
+    завышенную «чистую прибыль». Тот же приём, что в forecast._operating_estimate.
+    """
     acc: Dict[C, Decimal] = defaultdict(lambda: ZERO)
     d = start
     while d <= end:
-        hm = honest_month(date(d.year, d.month, 1))
+        hm = honest_month(date(d.year, d.month, 1)) or honest_month(latest_month_period())
         if hm:
             dim = monthrange(d.year, d.month)[1]
             for cat, amt in hm["operating"].items():
