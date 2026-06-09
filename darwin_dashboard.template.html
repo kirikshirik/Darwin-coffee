@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дарвин — Аналитика</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=Mulish:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── LIGHT THEME (default) ── */
+:root {
+  --bg: #f7f5f0;
+  --bg2: #f0ede6;
+  --ink: #18160f;
+  --card: #ffffff;
+  --border: #e4dfd4;
+  --border2: #cfc9bc;
+  --gold: #c9a84c;
+  --gold-lt: #f5edda;
+  --red: #d64040;
+  --red-lt: #fdf0f0;
+  --green: #2a7d4f;
+  --green-lt: #edf7f2;
+  --blue: #2b5fa8;
+  --blue-lt: #edf2fc;
+  --orange: #c96820;
+  --orange-lt: #fdf3ec;
+  --muted: #9a9180;
+  --muted2: #b8b0a0;
+  --sidebar-w: 220px;
+  --D: 'Syne', sans-serif;
+  --KPI: 'Bebas Neue', sans-serif;
+  --S: 'Mulish', sans-serif;
+  --topbar-bg: #ffffff;
+  --sb-bg: #18160f;
+  --shadow: 0 1px 4px rgba(0,0,0,.06);
+  --transition: background .25s ease, color .25s ease, border-color .25s ease;
+}
+
+/* ── DARK THEME ── */
+[data-theme="dark"] {
+  --bg: #0f0f0f;
+  --bg2: #161616;
+  --ink: #ede8e0;
+  --card: #1a1a1a;
+  --border: #2a2a2a;
+  --border2: #363636;
+  --gold: #d4a840;
+  --gold-lt: rgba(212,168,64,.1);
+  --red: #e05555;
+  --red-lt: rgba(224,85,85,.1);
+  --green: #3a9e65;
+  --green-lt: rgba(58,158,101,.1);
+  --blue: #4a7fd4;
+  --blue-lt: rgba(74,127,212,.1);
+  --orange: #d97f35;
+  --orange-lt: rgba(217,127,53,.1);
+  --muted: #666060;
+  --muted2: #4a4540;
+  --topbar-bg: #141414;
+  --sb-bg: #0f0f0f;
+  --shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+
+[data-theme="dark"] .sidebar { background: var(--sb-bg); border-right: 1px solid var(--border); }
+[data-theme="dark"] .pl-row.hdr { background: #252525; }
+[data-theme="dark"] .pl-row.section > .pl-c:first-child { background: var(--bg2); }
+[data-theme="dark"] .pl-row.subtotal { background: #1e1e1e; }
+[data-theme="dark"] .pl-row.total { background: rgba(212,168,64,.08); }
+[data-theme="dark"] .tbl th { background: var(--bg2); }
+[data-theme="dark"] .tbl tr:hover td { background: var(--bg2); }
+[data-theme="dark"] .pill-muted { background: var(--bg2); border-color: var(--border); }
+[data-theme="dark"] .exp-input { background: var(--bg2); color: var(--ink); }
+[data-theme="dark"] .cost-input { background: var(--bg2); color: var(--ink); }
+[data-theme="dark"] .tb-evotor { background: rgba(217,127,53,.08); }
+[data-theme="dark"] .tb-period { background: var(--bg2); }
+[data-theme="dark"] .tb-period button.active { background: var(--border2); color: var(--ink); }
+[data-theme="dark"] .save-btn { background: #2a2a2a; border: 1px solid var(--border2); }
+[data-theme="dark"] .save-btn:hover { background: #333; }
+[data-theme="dark"] .hbar.low { background: #2a2a2a; }
+[data-theme="dark"] .sb-sync { background: rgba(255,255,255,.03); }
+[data-theme="dark"] .sb-sync-row span { color: rgba(255,255,255,.6); }
+
+/* Theme toggle button */
+.theme-toggle {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 6px 4px 10px;
+  cursor: pointer; transition: var(--transition);
+  user-select: none;
+}
+.theme-toggle:hover { border-color: var(--border2); }
+.tt-label { font-family: var(--D); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); transition: color .2s; }
+.tt-track {
+  width: 32px; height: 18px; border-radius: 9px;
+  background: var(--border2); position: relative;
+  transition: background .25s ease; flex-shrink: 0;
+}
+.tt-thumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; transition: transform .25s ease, background .25s ease;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; line-height: 1;
+}
+[data-theme="dark"] .tt-track { background: var(--gold); }
+[data-theme="dark"] .tt-thumb { transform: translateX(14px); background: #1a1a1a; }
+[data-theme="dark"] .tt-label { color: var(--gold); }
+/* ── DEMO badge (панели без реальных данных — ждут подключения Эвотора) ── */
+.demo-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  background: var(--orange-lt); color: var(--orange);
+  border:1px solid rgba(201,104,32,.3); border-radius:20px;
+  padding:2px 9px; font-family: var(--D); font-size:9px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; vertical-align:middle;
+}
+.demo-badge::before { content:''; width:5px; height:5px; border-radius:50%; background: var(--orange); }
+* { margin:0; padding:0; box-sizing:border-box; }
+*, *::before, *::after { transition: var(--transition); }
+/* don't animate transitions that shouldn't move */
+.kpi, .page, .sb-item, .hbar, .mbar-fill, .tt-thumb, .tt-track { transition: none; }
+.kpi { transition: opacity .4s ease, transform .4s ease !important; }
+.hbar { transition: opacity .15s !important; }
+body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight:300; overflow-x:hidden; }
+
+/* ── LAYOUT ── */
+/* Сайдбар position:fixed (вне потока), а .main смещается margin-left — поэтому
+   .shell НЕ грид: иначе единственный поточный .main попадал в 1-ю колонку 220px
+   и зажимал контент (грид-карточки .kpi схлопывались в узкую колонку). */
+.shell { display:block; min-height:100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background:var(--ink); color:#f0ece4;
+  display:flex; flex-direction:column;
+  position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w);
+  z-index:100; overflow-y:auto;
+}
+.sb-logo { padding:24px 20px 20px; border-bottom:1px solid rgba(255,255,255,.08); }
+.sb-brand { font-family:var(--D); font-size:22px; font-weight:800; letter-spacing:-.02em; }
+.sb-brand span { color:var(--gold); }
+.sb-powered { font-size:9px; color:rgba(255,255,255,.3); letter-spacing:.18em; text-transform:uppercase; margin-top:3px; }
+
+.sb-status {
+  margin:12px 12px 4px;
+  background:rgba(61,220,132,.08); border:1px solid rgba(61,220,132,.2);
+  border-radius:7px; padding:10px 12px;
+  display:flex; align-items:center; gap:8px;
+}
+.sb-status-dot { width:6px;height:6px;border-radius:50%;background:#3ddc84;flex-shrink:0; animation:blink2 2s infinite; }
+@keyframes blink2{0%,100%{opacity:1}50%{opacity:.3}}
+.sb-status-text { font-size:11px; color:#3ddc84; font-weight:500; line-height:1.4; }
+.sb-status-text small { display:block; color:rgba(61,220,132,.6); font-size:10px; font-weight:300; }
+
+.sb-nav { flex:1; padding:8px 0 16px; }
+.sb-sec { padding:0 10px; margin-bottom:4px; }
+.sb-sec-lbl { font-size:9px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.2); padding:8px 8px 4px; }
+.sb-item {
+  display:flex; align-items:center; gap:9px;
+  padding:8px 10px; border-radius:6px;
+  font-size:12px; color:rgba(255,255,255,.5);
+  cursor:pointer; transition:all .15s; user-select:none;
+}
+.sb-item:hover { background:rgba(255,255,255,.06); color:rgba(255,255,255,.8); }
+.sb-item.active { background:rgba(201,168,76,.14); color:var(--gold); }
+.sb-ico { font-size:14px; width:18px; text-align:center; flex-shrink:0; }
+.sb-badge { margin-left:auto; font-size:9px; font-weight:700; padding:2px 6px; border-radius:8px; }
+.sb-badge.r { background:var(--red); color:#fff; }
+.sb-badge.g { background:var(--green); color:#fff; }
+.sb-badge.o { background:var(--orange); color:#fff; }
+
+.sb-sync {
+  margin:0 12px 12px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+  border-radius:7px; padding:12px;
+}
+.sb-sync-lbl { font-size:9px; color:rgba(255,255,255,.25); letter-spacing:.15em; text-transform:uppercase; margin-bottom:6px; }
+.sb-sync-row { display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,.4); margin-bottom:3px; }
+.sb-sync-row span { color:rgba(255,255,255,.7); }
+.sb-sync-btn {
+  width:100%; margin-top:8px;
+  background:rgba(201,168,76,.12); border:1px solid rgba(201,168,76,.25);
+  color:var(--gold); font-family:var(--D); font-size:10px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase;
+  padding:7px; border-radius:5px; cursor:pointer; transition:all .15s;
+}
+.sb-sync-btn:hover { background:rgba(201,168,76,.2); }
+
+/* ── MAIN ── */
+.main { margin-left:var(--sidebar-w); display:flex; flex-direction:column; min-height:100vh; }
+
+/* TOPBAR */
+.topbar {
+  background:var(--topbar-bg); border-bottom:1px solid var(--border);
+  padding:0 32px; height:56px;
+  display:flex; align-items:center; gap:12px;
+  position:sticky; top:0; z-index:90;
+  box-shadow: var(--shadow);
+}
+.tb-title { font-family:var(--D); font-size:14px; font-weight:700; }
+.tb-date { font-size:11px; color:var(--muted); }
+.tb-sp { flex:1; }
+.tb-evotor {
+  display:flex; align-items:center; gap:6px;
+  background:#fff8f0; border:1px solid rgba(201,104,32,.2);
+  padding:5px 10px; border-radius:5px; font-size:11px; color:var(--orange);
+}
+.tb-evotor-logo { font-family:var(--D); font-weight:800; font-size:11px; }
+.tb-period {
+  display:flex; gap:2px;
+  background:var(--border); padding:3px; border-radius:6px;
+}
+.tb-period button {
+  font-family:var(--D); font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:4px 12px; border-radius:4px; border:none; background:none; color:var(--muted); cursor:pointer; transition:all .15s;
+}
+.tb-period button.active { background:var(--ink); color:#fff; }
+
+/* CONTENT */
+.content { padding:28px 32px 60px; flex:1; }
+.page { display:none; }
+.page.active { display:block; animation:fin .3s ease; }
+@keyframes fin { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── SHARED ── */
+.sec-h { font-family:var(--D); font-size:24px; font-weight:800; letter-spacing:-.02em; margin-bottom:4px; }
+.sec-sub { font-size:12px; color:var(--muted); margin-bottom:22px; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+.row4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:10px; }
+.card-pad { padding:20px; }
+.card-hdr { display:flex; justify-content:space-between; align-items:center; padding:16px 20px 12px; border-bottom:1px solid var(--border); }
+.card-title { font-family:var(--D); font-size:13px; font-weight:700; }
+.card-action { font-size:11px; color:var(--gold); font-weight:600; cursor:pointer; }
+
+/* KPI CARD */
+.kpi {
+  background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:18px 18px 16px; position:relative; overflow:hidden;
+  opacity:0; animation:fin .4s ease forwards;
+}
+.kpi:nth-child(1){animation-delay:.04s}.kpi:nth-child(2){animation-delay:.08s}
+.kpi:nth-child(3){animation-delay:.12s}.kpi:nth-child(4){animation-delay:.16s}
+.kpi:nth-child(5){animation-delay:.20s}.kpi:nth-child(6){animation-delay:.24s}
+.kpi::before { content:''; position:absolute; top:0;left:0;right:0; height:3px; }
+.kpi.k-rev::before{background:var(--gold)}.kpi.k-gp::before{background:var(--green)}
+.kpi.k-np::before{background:var(--blue)}.kpi.k-chk::before{background:var(--muted2)}
+.kpi.k-ret::before{background:var(--red)}.kpi.k-dis::before{background:var(--orange)}
+.kpi-lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:6px; }
+.kpi-val { font-family:var(--KPI); font-size:38px; font-weight:400; line-height:1; margin-bottom:2px; letter-spacing:.02em; }
+.kpi-val.gold{color:var(--gold)}.kpi-val.green{color:var(--green)}
+.kpi-val.blue{color:var(--blue)}.kpi-val.red{color:var(--red)}
+.kpi-val.orange{color:var(--orange)}
+.kpi-d { font-size:11px; font-weight:500; margin-bottom:2px; }
+.kpi-d.up{color:var(--green)}.kpi-d.down{color:var(--red)}.kpi-d.warn{color:var(--orange)}
+.kpi-sub { font-size:11px; color:var(--muted); }
+.kpi-src { position:absolute; bottom:12px; right:14px; font-size:9px; color:var(--border2); font-weight:600; letter-spacing:.1em; text-transform:uppercase; }
+
+/* P&L BLOCK */
+.pl-wrap {
+  background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  margin-bottom:14px;
+}
+.pl-row { display:grid; grid-template-columns:2fr repeat(3,1fr); font-size:13px; border-bottom:1px solid var(--border); }
+.pl-row:last-child{border-bottom:none}
+.pl-row.hdr { background:var(--ink); color:#fff; font-family:var(--D); font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+.pl-row.section > .pl-c:first-child { font-family:var(--D); font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--bg); }
+.pl-row.subtotal { background:var(--bg2); }
+.pl-row.subtotal .pl-c { font-weight:600; }
+.pl-row.total { background:var(--gold-lt); }
+.pl-row.total .pl-c { font-family:var(--D); font-weight:800; }
+.pl-c { padding:10px 16px; border-right:1px solid var(--border); }
+.pl-c:last-child{border-right:none}
+.pl-c.r { text-align:right; font-variant-numeric:tabular-nums; }
+.v-pos{color:var(--green)}.v-neg{color:var(--red)}.v-muted{color:var(--muted)}.v-gold{color:var(--gold)}
+
+/* SOURCE BADGE */
+.src { display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:2px 7px; border-radius:4px; }
+.src.evo { background:rgba(201,104,32,.1); color:var(--orange); }
+.src.man { background:rgba(42,125,79,.1); color:var(--green); }
+.src.calc { background:rgba(43,95,168,.1); color:var(--blue); }
+
+/* TABLE */
+.tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.tbl th { background:var(--bg); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); padding:8px 14px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+.tbl td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg)}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.pill { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:8px; white-space:nowrap; }
+.pill-ok{background:var(--green-lt);color:var(--green)}
+.pill-warn{background:var(--orange-lt);color:var(--orange)}
+.pill-bad{background:var(--red-lt);color:var(--red)}
+.pill-muted{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+
+/* MINI BAR */
+.mbar { display:flex; align-items:center; gap:6px; }
+.mbar-bg { flex:1; height:5px; background:var(--border); border-radius:3px; overflow:hidden; min-width:60px; }
+.mbar-fill { height:100%; border-radius:3px; background:var(--gold); }
+.mbar-fill.g{background:var(--green)}.mbar-fill.r{background:var(--red)}.mbar-fill.o{background:var(--orange)}
+
+/* HOURLY CHART */
+.hchart { display:flex; align-items:flex-end; gap:3px; height:80px; padding:0 4px; }
+.hbar { flex:1; border-radius:3px 3px 0 0; background:var(--gold); opacity:.7; transition:opacity .15s; cursor:default; position:relative; }
+.hbar:hover{opacity:1}
+.hbar.peak{background:var(--green);opacity:.85}
+.hbar.low{background:var(--border);opacity:1}
+.hchart-labels { display:flex; gap:3px; padding:3px 4px 0; }
+.hchart-labels span { flex:1; font-size:8px; color:var(--muted); text-align:center; }
+
+/* EXPENSE INPUT */
+.exp-grid { display:grid; gap:8px; }
+.exp-row { display:grid; grid-template-columns:1fr auto 120px; gap:8px; align-items:center; }
+.exp-label { font-size:13px; }
+.exp-src { }
+.exp-input {
+  background:var(--bg); border:1px solid var(--border); border-radius:6px;
+  padding:7px 12px; font-family:var(--S); font-size:13px; color:var(--ink);
+  text-align:right; outline:none; width:100%; transition:border .15s;
+}
+.exp-input:focus{border-color:var(--gold)}
+.exp-total-row { border-top:2px solid var(--border2); margin-top:8px; padding-top:12px; display:flex; justify-content:space-between; align-items:center; }
+.exp-total-lbl { font-family:var(--D); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+.exp-total-val { font-family:var(--D); font-size:20px; font-weight:800; color:var(--red); }
+.save-btn { background:var(--ink); color:var(--gold); font-family:var(--D); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:8px 16px; border-radius:6px; border:none; cursor:pointer; transition:all .15s; }
+.save-btn:hover{background:#2d2a20}
+
+/* COST TABLE */
+.cost-input { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-family:var(--S); font-size:12px; color:var(--ink); width:70px; text-align:right; outline:none; }
+.cost-input:focus{border-color:var(--gold)}
+
+/* DATA SOURCE LEGEND */
+.ds-legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+.ds-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+
+/* TELEGRAM PREVIEW */
+.tg-preview {
+  background:#17212b; border-radius:12px; padding:20px;
+  font-family:monospace; font-size:13px; color:#e8e8e8; line-height:1.8;
+}
+.tg-preview .tg-name { color:#5bc4ff; font-weight:700; }
+.tg-preview .tg-num { color:#3ddc84; font-weight:600; }
+.tg-preview .tg-lbl { color:#8899aa; }
+.tg-preview .tg-warn { color:#ffb347; }
+.tg-preview .tg-divider { color:#3d4a5c; margin:4px 0; }
+.tg-btns { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.tg-btn { background:#2b3a4a; border:1px solid #3d5063; color:#8bb8d4; font-size:11px; padding:6px 14px; border-radius:6px; cursor:pointer; font-family:monospace; transition:all .15s; }
+.tg-btn:hover{background:#3d5063;color:#fff}
+.tg-btn.active{background:#1e6b9e;border-color:#2080b8;color:#fff}
+
+/* CONNECT BANNER */
+.connect-banner {
+  background:var(--orange-lt); border:1px solid rgba(201,104,32,.25);
+  border-radius:10px; padding:18px 20px; margin-bottom:16px;
+  display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center;
+}
+.cb-icon { font-size:24px; }
+.cb-title { font-family:var(--D); font-size:13px; font-weight:700; color:var(--orange); margin-bottom:3px; }
+.cb-desc { font-size:12px; color:var(--muted); }
+.cb-btn { background:var(--orange); color:#fff; font-family:var(--D); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:8px 14px; border-radius:6px; border:none; cursor:pointer; white-space:nowrap; }
+
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0}
+  .row4,.row3,.row2{grid-template-columns:1fr 1fr}
+  .pl-row{grid-template-columns:1fr 1fr}.pl-c:nth-child(3){display:none}
+  .content{padding:20px 16px 40px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">☕ <span>Дарвин</span></div>
+    <div class="sb-powered">аналитика · powered by Эвотор</div>
+  </div>
+
+  <div class="sb-status">
+    <div class="sb-status-dot"></div>
+    <div class="sb-status-text">
+      {{EVOTOR_STATUS}}
+      <small>{{EVOTOR_SUBSTATUS}}</small>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-sec">
+      <div class="sb-sec-lbl">Обзор</div>
+      <div class="sb-item active" onclick="nav('overview',this)"><span class="sb-ico">◈</span>Главная</div>
+      <div class="sb-item" onclick="nav('pl',this)"><span class="sb-ico">◻</span>P&amp;L / Прибыль</div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-lbl">Данные Эвотор</div>
+      <div class="sb-item" onclick="nav('sales',this)"><span class="sb-ico">△</span>Продажи<span class="sb-badge g">↑</span></div>
+      <div class="sb-item" onclick="nav('products',this)"><span class="sb-ico">◎</span>Товары</div>
+      <div class="sb-item" onclick="nav('returns',this)"><span class="sb-ico">◁</span>Возвраты<span class="sb-badge r">4</span></div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-lbl">Ручной ввод</div>
+      <div class="sb-item" onclick="nav('expenses',this)"><span class="sb-ico">◇</span>Расходы<span class="sb-badge o">!</span></div>
+      <div class="sb-item" onclick="nav('costs',this)"><span class="sb-ico">✦</span>Себестоимость</div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-lbl">Отчёты</div>
+      <div class="sb-item" onclick="nav('telegram',this)"><span class="sb-ico">✈</span>Telegram-дайджест</div>
+    </div>
+  </nav>
+
+  <div class="sb-sync">
+    <div class="sb-sync-lbl">Статус синхронизации</div>
+    <div class="sb-sync-row"><span>Чеков сегодня</span><span class="v-muted">—</span></div>
+    <div class="sb-sync-row"><span>Последний чек</span><span class="v-muted">—</span></div>
+    <div class="sb-sync-row"><span>Товаров в каталоге</span><span class="v-muted">—</span></div>
+    <button class="sb-sync-btn" onclick="syncNow()">↺ Синхронизировать</button>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tb-title">Главная</div>
+    <div class="tb-date">{{TODAY_LABEL}}</div>
+    <div class="tb-sp"></div>
+    <div class="tb-evotor">
+      <div class="tb-evotor-logo">ЭВОТОР</div>
+      <span>{{EVOTOR_BADGE}}</span>
+    </div>
+    <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
+      <span class="tt-label" id="tt-lbl">Светлая</span>
+      <div class="tt-track"><div class="tt-thumb" id="tt-thumb">☀️</div></div>
+    </div>
+    <div class="tb-period">
+      <button onclick="setPer(this,'вч')">Вчера</button>
+      <button class="active" onclick="setPer(this,'7д')">7 дней</button>
+      <button onclick="setPer(this,'мес')">Месяц</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ══ PAGE: OVERVIEW ══ -->
+  <div class="page active" id="page-overview">
+
+    <div class="ds-legend">
+      <div class="ds-item"><span class="src evo">эвотор</span> — данные из API автоматически</div>
+      <div class="ds-item"><span class="src man">вручную</span> — расходы и себестоимость</div>
+      <div class="ds-item"><span class="src calc">расчёт</span> — считается нашим сервисом</div>
+    </div>
+
+    <!-- KPI ROW 1: из Эвотора -->
+    <div style="font-family:var(--D);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>Из Эвотора</span><div style="flex:1;height:1px;background:var(--border)"></div><span class="demo-badge">демо · ждёт Эвотора</span></div>
+    <div class="row4" style="margin-bottom:12px">
+      <div class="kpi k-rev">
+        <div class="kpi-lbl">Выручка</div>
+        <div class="kpi-val gold">187 430₽</div>
+        <div class="kpi-d up">↑ 11.4% к прошлой неделе</div>
+        <div class="kpi-sub">7 дней · 703 чека</div>
+        <div class="kpi-src">эвотор</div>
+      </div>
+      <div class="kpi k-chk">
+        <div class="kpi-lbl">Средний чек</div>
+        <div class="kpi-val">266₽</div>
+        <div class="kpi-d up">↑ 4.1% к прошлой</div>
+        <div class="kpi-sub">703 чека за 7 дней</div>
+        <div class="kpi-src">эвотор</div>
+      </div>
+      <div class="kpi k-ret">
+        <div class="kpi-lbl">Возвраты</div>
+        <div class="kpi-val red">4 чека</div>
+        <div class="kpi-d warn">1 340₽ — 0.7% от выручки</div>
+        <div class="kpi-sub">норма &lt; 1%</div>
+        <div class="kpi-src">эвотор</div>
+      </div>
+      <div class="kpi k-dis">
+        <div class="kpi-lbl">Скидки</div>
+        <div class="kpi-val orange">9 200₽</div>
+        <div class="kpi-d warn">4.9% от выручки</div>
+        <div class="kpi-sub">карты лояльности: 38 чеков</div>
+        <div class="kpi-src">эвотор</div>
+      </div>
+    </div>
+
+    <!-- KPI ROW 2: расчётные -->
+    <div style="font-family:var(--D);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>Расчётные показатели</span><div style="flex:1;height:1px;background:var(--border)"></div><span class="src calc">расчёт</span></div>
+    <div class="row3" style="margin-bottom:22px">
+      <div class="kpi k-gp">
+        <div class="kpi-lbl">Валовая прибыль</div>
+        <div class="kpi-val green">{{GP_VAL}}₽</div>
+        <div class="kpi-d up">Маржа: {{GP_MARGIN}}%</div>
+        <div class="kpi-sub">{{PERIOD_LABEL}} · выручка − закупка</div>
+        <div class="kpi-src">расчёт</div>
+      </div>
+      <div class="kpi k-np">
+        <div class="kpi-lbl">Чистая прибыль</div>
+        <div class="kpi-val blue">{{NP_VAL}}₽</div>
+        <div class="kpi-d up">Маржа: {{NP_MARGIN}}%</div>
+        <div class="kpi-sub">{{PERIOD_LABEL}} · после всех расходов</div>
+        <div class="kpi-src">расчёт</div>
+      </div>
+      <div class="kpi k-np" style="border-color:rgba(201,168,76,.3)">
+        <div class="kpi-lbl">Прогноз месяца</div>
+        <div class="kpi-val gold">{{FC_VAL}}₽</div>
+        <div class="kpi-d up">Чистая прибыль · {{FC_MONTH}}</div>
+        <div class="kpi-sub">По истории последних месяцев</div>
+        <div class="kpi-src">расчёт</div>
+      </div>
+    </div>
+
+    <!-- MIDDLE: часы + топ товары -->
+    <div class="row2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-hdr">
+          <div class="card-title">Выручка по часам · вчера</div>
+          <span class="demo-badge">демо · ждёт Эвотора</span>
+        </div>
+        <div style="padding:16px 20px 8px">
+          <div class="hchart" id="hchart"></div>
+          <div class="hchart-labels" id="hchart-labels"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px">
+            <span style="color:var(--green);font-weight:600">08:00–10:00</span> → 30% всей выручки дня &nbsp;·&nbsp;
+            <span style="color:var(--muted)">14:00–16:00</span> → минимум
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div class="card-title">Топ товаров по прибыли</div>
+          <span class="demo-badge">демо · ждёт Эвотора</span>
+        </div>
+        <div>
+          <table class="tbl">
+            <thead><tr><th>Товар</th><th class="r">Продано</th><th class="r">Выручка</th><th class="r">Прибыль</th><th class="r">Маржа</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Капучино</strong></td><td class="r">312</td><td class="r">93 600₽</td><td class="r v-pos">58 000₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:62%"></div></div><span style="font-size:11px;color:var(--green);font-weight:600">62%</span></div></td></tr>
+              <tr><td><strong>Раф</strong></td><td class="r">148</td><td class="r">59 200₽</td><td class="r v-pos">40 000₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:68%"></div></div><span style="font-size:11px;color:var(--green);font-weight:600">68%</span></div></td></tr>
+              <tr><td>Латте</td><td class="r">243</td><td class="r">72 900₽</td><td class="r v-pos">39 000₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill" style="width:53%"></div></div><span style="font-size:11px;color:var(--gold);font-weight:600">53%</span></div></td></tr>
+              <tr><td>Американо</td><td class="r">187</td><td class="r">28 050₽</td><td class="r v-pos">19 800₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:71%"></div></div><span style="font-size:11px;color:var(--green);font-weight:600">71%</span></div></td></tr>
+              <tr><td style="color:var(--muted)">Чизкейк</td><td class="r v-muted">89</td><td class="r v-muted">26 700₽</td><td class="r v-warn" style="color:var(--orange)">3 200₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill o" style="width:12%"></div></div><span style="font-size:11px;color:var(--orange);font-weight:600">12%</span></div></td></tr>
+            </tbody>
+          </table>
+          <div style="padding:10px 14px;background:var(--orange-lt);font-size:11px;color:var(--orange);border-top:1px solid rgba(201,104,32,.15)">
+            ⚠ Чизкейк: выручка 26к, прибыль 3.2к. Занимает место и время — рассмотреть замену.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT TYPES -->
+    <div class="card card-pad" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title">Способы оплаты <span class="demo-badge" style="margin-left:6px">демо · ждёт Эвотора</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--blue)">58%</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">Карта</div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">108 700₽</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--green)">28%</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">СБП</div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">52 500₽</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <div style="font-family:var(--D);font-size:22px;font-weight:800">11%</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">Наличные</div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">20 600₽</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--orange)">3%</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">Лояльность</div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">5 600₽</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">Эквайринг (карта+СБП): ~2.5% → <strong style="color:var(--red)">4 030₽/нед</strong> расход</div>
+    </div>
+
+  </div><!-- /overview -->
+
+  <!-- ══ PAGE: P&L ══ -->
+  <div class="page" id="page-pl">
+    <div class="sec-h">P&amp;L · Отчёт о прибыли</div>
+    <div class="sec-sub">{{PERIOD_LABEL}} и 12 мес · честный P&amp;L (COGS = закупка товара; ФОТ — в опер. расходах). Источник: Excel владельца, не Эвотор.</div>
+
+    <div class="pl-wrap">
+      {{PL_TABLE}}
+    </div>
+
+    <div style="background:var(--green-lt);border:1px solid rgba(42,125,79,.2);border-radius:8px;padding:14px 18px;font-size:13px;color:var(--green)">
+      <strong style="font-family:var(--D)">Вывод:</strong> {{PERIOD_LABEL}} — чистая прибыль <strong>{{NP_VAL}}₽</strong> ({{NP_MARGIN}}%). Прогноз на {{FC_MONTH}}: <strong>{{FC_VAL}}₽</strong>. По итогам 12 месяцев бизнес в плюсе; главный дренаж — ФОТ и аренда.
+    </div>
+  </div>
+
+  <!-- ══ PAGE: SALES ══ -->
+  <div class="page" id="page-sales">
+    <div class="sec-h">Продажи <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
+    <div class="sec-sub">Данные из receipts + receipt_items · 7 дней</div>
+    <div class="card" style="margin-bottom:14px">
+      <table class="tbl">
+        <thead><tr><th>Дата</th><th class="r">Чеков</th><th class="r">Выручка</th><th class="r">Возвраты</th><th class="r">Скидки</th><th class="r">Нетто</th><th>Тренд</th></tr></thead>
+        <tbody>
+          <tr><td>Пн 3 июня</td><td class="r">92</td><td class="r">24 500₽</td><td class="r v-neg">0₽</td><td class="r v-warn" style="color:var(--orange)">−800₽</td><td class="r v-pos">23 700₽</td><td><div class="mbar-bg" style="min-width:80px"><div class="mbar-fill" style="width:58%"></div></div></td></tr>
+          <tr><td style="color:var(--orange)">Вт 4 июня ↓</td><td class="r v-muted">68</td><td class="r v-muted">18 100₽</td><td class="r v-neg">−670₽</td><td class="r v-warn" style="color:var(--orange)">−1 200₽</td><td class="r v-warn" style="color:var(--orange)">16 230₽</td><td><div class="mbar-bg" style="min-width:80px"><div class="mbar-fill o" style="width:39%"></div></div></td></tr>
+          <tr><td style="color:var(--orange)">Ср 5 июня ↓</td><td class="r v-muted">74</td><td class="r v-muted">19 700₽</td><td class="r v-neg">−670₽</td><td class="r v-warn" style="color:var(--orange)">−1 400₽</td><td class="r v-warn" style="color:var(--orange)">17 630₽</td><td><div class="mbar-bg" style="min-width:80px"><div class="mbar-fill o" style="width:43%"></div></div></td></tr>
+          <tr><td>Чт 6 июня</td><td class="r">104</td><td class="r">27 700₽</td><td class="r v-muted">0₽</td><td class="r v-warn" style="color:var(--orange)">−1 800₽</td><td class="r v-pos">25 900₽</td><td><div class="mbar-bg" style="min-width:80px"><div class="mbar-fill" style="width:65%"></div></div></td></tr>
+          <tr><td><strong>Пт 7 июня</strong></td><td class="r"><strong>131</strong></td><td class="r v-pos"><strong>34 900₽</strong></td><td class="r v-muted">0₽</td><td class="r v-warn" style="color:var(--orange)">−2 100₽</td><td class="r v-pos">32 800₽</td><td><div class="mbar-bg" style="min-width:80px"><div class="mbar-fill g" style="width:83%"></div></div></td></tr>
+          <tr><td><strong>Сб 8 июня</strong></td><td class="r"><strong>142</strong></td><td class="r v-pos"><strong>37 800₽</strong></td><td class="r v-muted">0₽</td><td class="r v-warn" style="color:var(--orange)">−1 900₽</td><td class="r v-pos">35 900₽</td><td><div class="mbar-bg" style="min-width:80px"><div class="mbar-fill g" style="width:90%"></div></div></td></tr>
+          <tr><td>Вс 9 июня</td><td class="r">92</td><td class="r">24 730₽</td><td class="r v-muted">0₽</td><td class="r v-warn" style="color:var(--orange)">−0₽</td><td class="r v-pos">24 730₽</td><td><div class="mbar-bg" style="min-width:80px"><div class="mbar-fill" style="width:59%"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:var(--orange-lt);border:1px solid rgba(201,104,32,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--orange)">
+      ⚠ <strong>Вторник и среда</strong> стабильно слабее на 35–40%. Рекомендация: акция на вт/ср — доп. сироп или скидка 10% до 12:00.
+    </div>
+  </div>
+
+  <!-- ══ PAGE: PRODUCTS ══ -->
+  <div class="page" id="page-products">
+    <div class="sec-h">Товары <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
+    <div class="sec-sub">Каталог из Эвотора · себестоимость вводится вручную · прибыль рассчитывается автоматически</div>
+    <div class="connect-banner">
+      <div class="cb-icon">⚠</div>
+      <div><div class="cb-title">Себестоимость не заполнена для 14 позиций</div><div class="cb-desc">Без себестоимости нельзя рассчитать валовую прибыль по позициям. Заполните в разделе «Себестоимость».</div></div>
+      <button class="cb-btn" onclick="nav('costs',document.querySelector('.sb-item:nth-child(8)'))">Заполнить →</button>
+    </div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th>Товар</th><th class="r">Цена продажи</th><th class="r">Себест.</th><th class="r">Маржа</th><th class="r">Продано (7д)</th><th class="r">Выручка</th><th class="r">Прибыль</th><th>Статус</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Капучино</strong></td><td class="r">300₽</td><td class="r">47₽</td><td class="r v-pos">84.3%</td><td class="r">312</td><td class="r">93 600₽</td><td class="r v-pos">78 764₽</td><td><span class="pill pill-ok">Звезда</span></td></tr>
+          <tr><td><strong>Раф</strong></td><td class="r">400₽</td><td class="r">52₽</td><td class="r v-pos">87.0%</td><td class="r">148</td><td class="r">59 200₽</td><td class="r v-pos">50 504₽</td><td><span class="pill pill-ok">Звезда</span></td></tr>
+          <tr><td>Латте</td><td class="r">300₽</td><td class="r">52₽</td><td class="r v-pos">82.7%</td><td class="r">243</td><td class="r">72 900₽</td><td class="r v-pos">60 264₽</td><td><span class="pill pill-ok">Хорошо</span></td></tr>
+          <tr><td>Американо</td><td class="r">150₽</td><td class="r">18₽</td><td class="r v-pos">88.0%</td><td class="r">187</td><td class="r">28 050₽</td><td class="r v-pos">24 684₽</td><td><span class="pill pill-ok">Хорошо</span></td></tr>
+          <tr><td>Флэт уайт</td><td class="r">320₽</td><td class="r">49₽</td><td class="r v-pos">84.7%</td><td class="r">94</td><td class="r">30 080₽</td><td class="r v-pos">25 406₽</td><td><span class="pill pill-ok">Хорошо</span></td></tr>
+          <tr><td style="color:var(--orange)">Чизкейк</td><td class="r">300₽</td><td class="r">264₽</td><td class="r v-warn" style="color:var(--orange)">12.0%</td><td class="r v-muted">89</td><td class="r v-muted">26 700₽</td><td class="r v-warn" style="color:var(--orange)">3 204₽</td><td><span class="pill pill-warn">Пересмотр</span></td></tr>
+          <tr><td>Круассан</td><td class="r">180₽</td><td class="r">98₽</td><td class="r">45.6%</td><td class="r">134</td><td class="r">24 120₽</td><td class="r">10 988₽</td><td><span class="pill pill-muted">Норма</span></td></tr>
+          <tr><td style="color:var(--muted)">Пирожок</td><td class="r v-muted">120₽</td><td class="r v-muted">—</td><td class="r v-muted">—</td><td class="r v-muted">56</td><td class="r v-muted">6 720₽</td><td class="r v-muted">?</td><td><span class="pill pill-bad">Нет данных</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: RETURNS ══ -->
+  <div class="page" id="page-returns">
+    <div class="sec-h">Возвраты <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
+    <div class="sec-sub">4 возврата за 7 дней · 1 340₽ · 0.7% от выручки</div>
+    <div class="card" style="margin-bottom:14px">
+      <table class="tbl">
+        <thead><tr><th>Дата / время</th><th>Товар</th><th class="r">Сумма</th><th>Причина</th><th>Бариста</th><th>Статус</th></tr></thead>
+        <tbody>
+          <tr><td>04.06 · 09:14</td><td>Латте</td><td class="r v-neg">−300₽</td><td>Не тот напиток</td><td>Дарья</td><td><span class="pill pill-ok">Закрыт</span></td></tr>
+          <tr><td>04.06 · 11:32</td><td>Капучино + Круассан</td><td class="r v-neg">−370₽</td><td>Некачественно</td><td>Дарья</td><td><span class="pill pill-warn">Разбор</span></td></tr>
+          <tr><td>05.06 · 14:08</td><td>Раф</td><td class="r v-neg">−400₽</td><td>Долго ждали</td><td>Антон</td><td><span class="pill pill-ok">Закрыт</span></td></tr>
+          <tr><td>05.06 · 16:41</td><td>Чизкейк</td><td class="r v-neg">−270₽</td><td>Не понравилось</td><td>Антон</td><td><span class="pill pill-ok">Закрыт</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:var(--orange-lt);border:1px solid rgba(201,104,32,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--orange)">
+      ⚠ <strong>2 из 4 возвратов</strong> — смена Дарьи 4 июня. Рекомендуем провести разбор ситуации.
+    </div>
+  </div>
+
+  <!-- ══ PAGE: EXPENSES ══ -->
+  <div class="page" id="page-expenses">
+    <div class="sec-h">Расходы <span class="src man" style="font-size:12px;vertical-align:middle;margin-left:8px">ручной ввод</span></div>
+    <div class="sec-sub">Постоянные расходы · вводятся один раз · автоматически включаются в P&amp;L</div>
+
+    <div class="connect-banner" style="border-color:rgba(201,104,32,.25)">
+      <div class="cb-icon">!</div>
+      <div><div class="cb-title">Расходы не обновлялись 18 дней</div><div class="cb-desc">Последнее обновление: 22 мая. Проверьте актуальность суммы аренды и ФОТ.</div></div>
+      <button class="cb-btn" onclick="this.closest('.connect-banner').remove()">Понятно</button>
+    </div>
+
+    <div class="row2">
+      <div class="card card-pad">
+        <div class="card-title" style="margin-bottom:16px">Ежемесячные расходы</div>
+        <div class="exp-grid" id="exp-form">
+          <div class="exp-row"><div class="exp-label">Аренда</div><span class="src man">вручную</span><input class="exp-input" value="{{EXP_RENT}}" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Зарплаты (ФОТ)</div><span class="src man">вручную</span><input class="exp-input" value="{{EXP_PAYROLL}}" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Коммуналка</div><span class="src man">вручную</span><input class="exp-input" value="{{EXP_UTIL}}" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Реклама</div><span class="src man">вручную</span><input class="exp-input" value="0" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Налоги</div><span class="src calc">расчёт</span><input class="exp-input" value="{{EXP_TAXES}}" readonly style="background:#f5f3ef;color:var(--muted)"></div>
+          <div class="exp-row"><div class="exp-label">Эквайринг</div><span class="src calc">расчёт</span><input class="exp-input" value="{{EXP_ACQ}}" readonly style="background:#f5f3ef;color:var(--muted)"></div>
+          <div class="exp-row"><div class="exp-label">Прочее</div><span class="src man">вручную</span><input class="exp-input" value="0" oninput="calcExpenses()"></div>
+        </div>
+        <div class="exp-total-row">
+          <div class="exp-total-lbl">Итого / мес</div>
+          <div class="exp-total-val" id="exp-total">475 000₽</div>
+        </div>
+        <div style="text-align:right;margin-top:12px">
+          <button class="save-btn" onclick="saveExp()">✓ Сохранить</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card card-pad" style="margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:12px">Структура расходов</div>
+          <div style="display:flex;flex-direction:column;gap:8px" id="exp-chart"></div>
+        </div>
+        <div class="card card-pad" style="background:var(--blue-lt);border-color:rgba(43,95,168,.2)">
+          <div style="font-family:var(--D);font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px">Точка безубыточности</div>
+          <div style="font-family:var(--D);font-size:28px;font-weight:800;color:var(--blue)" id="breakeven">697 700₽</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Выручка в месяц при которой прибыль = 0</div>
+          <div style="font-size:11px;color:var(--blue);margin-top:6px">Текущая выручка: ~802к · запас <strong>+104 300₽</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: COSTS ══ -->
+  <div class="page" id="page-costs">
+    <div class="sec-h">Себестоимость <span class="src man" style="font-size:12px;vertical-align:middle;margin-left:8px">ручной ввод</span> <span class="demo-badge" style="margin-left:6px">цены — демо</span></div>
+    <div class="sec-sub">Вводится один раз · при изменении закупочных цен обновляется · автоматически рассчитывает маржу по каждой позиции</div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th>Товар</th><th class="r">Цена (Эвотор)</th><th class="r">Себестоимость</th><th class="r">Маржа</th><th>Состав</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Капучино</strong></td>
+            <td class="r">300₽</td>
+            <td class="r"><input class="cost-input" value="47" oninput="calcMargin(this,300)"> ₽</td>
+            <td class="r v-pos" id="cm-0">84.3%</td>
+            <td style="font-size:11px;color:var(--muted)">Зерно 17₽ · Молоко 22₽ · Стакан 5₽ · Крышка 3₽</td>
+          </tr>
+          <tr>
+            <td><strong>Раф</strong></td>
+            <td class="r">400₽</td>
+            <td class="r"><input class="cost-input" value="52" oninput="calcMargin(this,400)"> ₽</td>
+            <td class="r v-pos" id="cm-1">87.0%</td>
+            <td style="font-size:11px;color:var(--muted)">Зерно 17₽ · Молоко 22₽ · Сливки 10₽ · Стакан 3₽</td>
+          </tr>
+          <tr>
+            <td>Латте</td>
+            <td class="r">300₽</td>
+            <td class="r"><input class="cost-input" value="52" oninput="calcMargin(this,300)"> ₽</td>
+            <td class="r v-pos" id="cm-2">82.7%</td>
+            <td style="font-size:11px;color:var(--muted)">Зерно 17₽ · Молоко 30₽ · Стакан 5₽</td>
+          </tr>
+          <tr>
+            <td>Американо</td>
+            <td class="r">150₽</td>
+            <td class="r"><input class="cost-input" value="18" oninput="calcMargin(this,150)"> ₽</td>
+            <td class="r v-pos" id="cm-3">88.0%</td>
+            <td style="font-size:11px;color:var(--muted)">Зерно 12₽ · Стакан 4₽ · Крышка 2₽</td>
+          </tr>
+          <tr>
+            <td style="color:var(--orange)">Чизкейк</td>
+            <td class="r">300₽</td>
+            <td class="r"><input class="cost-input" value="264" oninput="calcMargin(this,300)" style="border-color:rgba(201,104,32,.4)"> ₽</td>
+            <td class="r" id="cm-4" style="color:var(--orange)">12.0%</td>
+            <td style="font-size:11px;color:var(--orange)">⚠ Закупочная цена 220₽ + упаковка 44₽ — маржа критически низкая</td>
+          </tr>
+          <tr>
+            <td>Круассан</td>
+            <td class="r">180₽</td>
+            <td class="r"><input class="cost-input" value="98" oninput="calcMargin(this,180)"> ₽</td>
+            <td class="r" id="cm-5">45.6%</td>
+            <td style="font-size:11px;color:var(--muted)">Закупка 85₽ + упаковка 13₽</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: TELEGRAM ══ -->
+  <div class="page" id="page-telegram">
+    <div class="sec-h">Telegram-дайджест</div>
+    <div class="sec-sub">Автоматическая рассылка каждое утро в 09:00 · на основе данных Эвотор + ручных расходов</div>
+    <div class="row2">
+      <div>
+        <div class="card-title" style="margin-bottom:10px">Предпросмотр · {{PERIOD_LABEL}}</div>
+        <div class="tg-preview">
+          {{TG_DIGEST}}
+        </div>
+        <div class="tg-btns">
+          <button class="tg-btn active">Сегодня</button>
+          <button class="tg-btn">Вчера</button>
+          <button class="tg-btn">Неделя</button>
+          <button class="tg-btn">Месяц</button>
+          <button class="tg-btn">Товары</button>
+          <button class="tg-btn">Расходы</button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:12px">Настройки рассылки</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span>Ежедневный дайджест</span><span style="color:var(--green);font-weight:600">09:00 ✓</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span>Алерт при аномалии</span><span style="color:var(--green);font-weight:600">Вкл ✓</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span>Отчёт по неделе</span><span style="color:var(--green);font-weight:600">Пн 08:00 ✓</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0"><span>Прогноз месяца</span><span style="color:var(--green);font-weight:600">1-е число ✓</span></div>
+          </div>
+        </div>
+        <div class="card card-pad" style="background:var(--green-lt);border-color:rgba(42,125,79,.2)">
+          <div style="font-family:var(--D);font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px">Формула P&amp;L в боте</div>
+          <div style="font-size:12px;color:var(--ink);line-height:2;font-family:monospace">
+            Выручка (Эвотор)<br>
+            − Возвраты (Эвотор)<br>
+            − Скидки (Эвотор)<br>
+            = Нетто<br>
+            − Себестоимость (вручную)<br>
+            = Валовая прибыль<br>
+            − Расходы / 30 дней<br>
+            = <strong>Чистая прибыль дня</strong>
+          </div>
+        </div>
+        <button class="save-btn" style="width:100%;padding:12px" onclick="alert('Тестовое сообщение отправлено в Telegram!')">✈ Отправить тест в Telegram</button>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ── NAV ──
+const titles = {overview:'Главная',pl:'P&L · Прибыль',sales:'Продажи',products:'Товары',returns:'Возвраты',expenses:'Расходы',costs:'Себестоимость',telegram:'Telegram-дайджест'};
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('tb-title').textContent = titles[id]||id;
+  window.scrollTo(0,0);
+}
+function setPer(btn){ document.querySelectorAll('.tb-period button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+
+// ── HOURLY CHART ──
+(function(){
+  const vals = [0,0,0,12,22,38,48,42,18,14,12,16,14,12,8,6,4,0,0,0,0,0,0,0];
+  const labels = ['0','','','','','','6','','','','','','12','','','','','','18','','','','','0'];
+  const max = Math.max(...vals);
+  const bars = document.getElementById('hchart');
+  const lbls = document.getElementById('hchart-labels');
+  vals.forEach((v,i)=>{
+    const b = document.createElement('div');
+    b.className = 'hbar' + (v===max?' peak':'') + (v===0?' low':'');
+    b.style.height = Math.max(2,(v/max)*74)+'px';
+    b.title = `${String(i).padStart(2,'0')}:00 — ${v}%`;
+    bars.appendChild(b);
+    const l = document.createElement('span');
+    l.textContent = labels[i];
+    lbls.appendChild(l);
+  });
+})();
+
+// ── EXPENSES ──
+function parseNum(s){ return parseInt(String(s).replace(/\s/g,''))||0; }
+function calcExpenses(){
+  const inputs = document.querySelectorAll('#exp-form .exp-input');
+  let total = 0;
+  inputs.forEach(i=>total+=parseNum(i.value));
+  document.getElementById('exp-total').textContent = total.toLocaleString('ru')+'₽';
+  document.getElementById('breakeven').textContent = Math.round(total/0.668).toLocaleString('ru')+'₽';
+  // chart
+  const labels2 = ['Аренда','ФОТ','Коммуналка','Реклама','Налоги','Эквайринг','Прочее'];
+  const vals2 = [];
+  inputs.forEach(i=>vals2.push(parseNum(i.value)));
+  const maxV = Math.max(...vals2);
+  const chart = document.getElementById('exp-chart');
+  chart.innerHTML = '';
+  labels2.forEach((lbl,i)=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px';
+    const pct = Math.round((vals2[i]||0)/total*100);
+    row.innerHTML = `<span style="width:80px;color:var(--muted);text-align:right">${lbl}</span><div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--gold);border-radius:3px"></div></div><span style="width:40px;text-align:right;font-weight:500">${pct}%</span>`;
+    chart.appendChild(row);
+  });
+}
+calcExpenses();
+
+// ── MARGIN CALC ──
+function calcMargin(input, price){
+  const cost = parseFloat(input.value)||0;
+  const margin = price>0 ? ((price-cost)/price*100).toFixed(1) : 0;
+  const idx = Array.from(document.querySelectorAll('.cost-input')).indexOf(input);
+  const el = document.getElementById('cm-'+idx);
+  if(el){
+    el.textContent = margin+'%';
+    el.className = 'r '+(margin>60?'v-pos':margin>30?'':'v-warn');
+  }
+}
+
+// ── SYNC ──
+function syncNow(){
+  const btn = document.querySelector('.sb-sync-btn');
+  btn.textContent = '↺ Синхронизация...';
+  btn.disabled = true;
+  setTimeout(()=>{
+    btn.textContent = '✓ Обновлено';
+    setTimeout(()=>{ btn.textContent='↺ Синхронизировать'; btn.disabled=false; },2000);
+  },1500);
+}
+
+// ── SAVE EXP ──
+function saveExp(){ const b = document.querySelector('.save-btn'); b.textContent='✓ Сохранено'; setTimeout(()=>b.textContent='✓ Сохранить',2000); }
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  const lbl = document.getElementById('tt-lbl');
+  const thumb = document.getElementById('tt-thumb');
+  if (!isDark) {
+    lbl.textContent = 'Тёмная';
+    thumb.textContent = '🌙';
+    localStorage.setItem('darwin-theme','dark');
+  } else {
+    lbl.textContent = 'Светлая';
+    thumb.textContent = '☀️';
+    localStorage.setItem('darwin-theme','light');
+  }
+}
+// Restore saved theme
+(function(){
+  const saved = localStorage.getItem('darwin-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme','dark');
+    const lbl = document.getElementById('tt-lbl');
+    const thumb = document.getElementById('tt-thumb');
+    if(lbl) lbl.textContent = 'Тёмная';
+    if(thumb) thumb.textContent = '🌙';
+  }
+})();</script>
+</body>
+</html>

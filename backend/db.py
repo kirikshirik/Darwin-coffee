@@ -16,12 +16,23 @@ from sqlalchemy.orm import sessionmaker
 DB_PATH = Path(__file__).resolve().parent.parent / "darwin.db"
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 
+# Neon/Render/Heroku отдают строку со схемой postgresql://, а драйвер psycopg3
+# в SQLAlchemy ждёт postgresql+psycopg:// — нормализуем, чтобы можно было вставить
+# строку подключения как есть, без ручной правки.
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL[len("postgresql://"):]
+
 _is_sqlite = DATABASE_URL.startswith("sqlite")
 # check_same_thread=False — бот читает, синк/планировщик пишут (разные потоки/процессы).
 # Безопасность конкурентного доступа обеспечивает WAL + busy_timeout (см. ниже).
 _connect_args = {"check_same_thread": False} if _is_sqlite else {}
+# pool_pre_ping: Neon усыпляет idle-коннекты (scale-to-zero) — проверяем соединение
+# перед выдачей из пула, чтобы не ловить «server closed the connection» после простоя.
+_engine_kwargs = {} if _is_sqlite else {"pool_pre_ping": True}
 
-engine = create_engine(DATABASE_URL, echo=False, future=True, connect_args=_connect_args)
+engine = create_engine(
+    DATABASE_URL, echo=False, future=True, connect_args=_connect_args, **_engine_kwargs
+)
 
 
 if _is_sqlite:
