@@ -29,10 +29,15 @@ log = logging.getLogger(__name__)
 SYNC_DAYS = 3  # окно инкрементального синка (как у darwin-sync.service)
 
 
-async def send_morning_report(bot: Bot, chat_id: int) -> None:
+async def send_morning_report(bot: Bot, chat_ids: tuple[int, ...]) -> None:
+    """Утренняя сводка всем владельцам. Текст считаем один раз; сбой одному не мешает другим."""
     text = reports.morning_text()
-    await bot.send_message(chat_id, text)
-    log.info("Утренняя сводка отправлена в чат %s", chat_id)
+    for chat_id in chat_ids:
+        try:
+            await bot.send_message(chat_id, text)
+            log.info("Утренняя сводка отправлена в чат %s", chat_id)
+        except Exception:
+            log.exception("Не удалось отправить сводку в чат %s", chat_id)
 
 
 async def run_evotor_sync() -> None:
@@ -61,8 +66,8 @@ def setup_scheduler(bot: Bot, config: BotConfig) -> AsyncIOScheduler:
     """
     scheduler = AsyncIOScheduler(timezone=config.timezone)
 
-    # 1) Утренняя сводка — только если задан чат владельца.
-    if config.owner_chat_id is None:
+    # 1) Утренняя сводка — только если задан хотя бы один владелец.
+    if not config.owner_chat_ids:
         log.warning(
             "TELEGRAM_OWNER_CHAT_ID не задан — утренняя рассылка выключена "
             "(бот отвечает только на кнопки)."
@@ -72,12 +77,15 @@ def setup_scheduler(bot: Bot, config: BotConfig) -> AsyncIOScheduler:
         scheduler.add_job(
             send_morning_report,
             trigger=CronTrigger(hour=hh, minute=mm, timezone=config.timezone),
-            args=(bot, config.owner_chat_id),
+            args=(bot, config.owner_chat_ids),
             id="morning_report",
             replace_existing=True,
             misfire_grace_time=3600,
         )
-        log.info("Сводка по расписанию: ежедневно в %02d:%02d (%s)", hh, mm, config.timezone)
+        log.info(
+            "Сводка по расписанию: ежедневно в %02d:%02d (%s) — владельцев: %d",
+            hh, mm, config.timezone, len(config.owner_chat_ids),
+        )
 
     # 2) Синк Эвотора в процессе — только если задан интервал И есть токен.
     interval = _sync_interval_min()

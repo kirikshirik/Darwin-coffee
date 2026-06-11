@@ -23,6 +23,7 @@ from aiogram.types import (
 
 from backend import dashboard
 from backend.bot import reports
+from backend.bot.config import parse_owner_ids
 
 log = logging.getLogger(__name__)
 router = Router()
@@ -47,10 +48,9 @@ MAIN_KEYBOARD = ReplyKeyboardMarkup(
 )
 
 
-def _owner_chat_id() -> int | None:
-    """ID чата владельца из .env (тот же, что у утренней рассылки). None — не задан."""
-    raw = os.getenv("TELEGRAM_OWNER_CHAT_ID", "").strip()
-    return int(raw) if raw else None
+def _owner_chat_ids() -> tuple[int, ...]:
+    """ID владельцев из .env (те же, что у утренней рассылки). Пусто — не заданы."""
+    return parse_owner_ids(os.getenv("TELEGRAM_OWNER_CHAT_ID", ""))
 
 
 @router.message(Command("start"))
@@ -60,16 +60,16 @@ async def on_start(message: Message) -> None:
 
 @router.message(Command("dashboard"))
 async def on_dashboard(message: Message) -> None:
-    """Прислать свежую ops-панель файлом. Только владельцу (там полный P&L)."""
-    owner_id = _owner_chat_id()
-    if owner_id is None:
+    """Прислать свежую ops-панель файлом. Только владельцам (там полный P&L)."""
+    owner_ids = _owner_chat_ids()
+    if not owner_ids:
         await message.answer(
             "Команда выключена: не задан TELEGRAM_OWNER_CHAT_ID — некому доверить "
             "финансовую панель."
         )
         return
-    if message.chat.id != owner_id:
-        await message.answer("Команда доступна только владельцу.")
+    if message.chat.id not in owner_ids:
+        await message.answer("Команда доступна только владельцам.")
         return
 
     await message.answer("Собираю панель…")

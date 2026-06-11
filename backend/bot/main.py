@@ -16,6 +16,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
+from backend.bot.access import OwnerOnlyMiddleware
 from backend.bot.config import BotConfig
 from backend.bot.handlers import router
 from backend.bot.health import start_health_server
@@ -35,6 +36,8 @@ async def run() -> None:
 
     bot = Bot(token=config.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
+    # Доступ только владельцам (там финансы) — одно место на все хендлеры.
+    dp.message.middleware(OwnerOnlyMiddleware(config.owner_chat_ids))
     dp.include_router(router)
 
     scheduler = setup_scheduler(bot, config)

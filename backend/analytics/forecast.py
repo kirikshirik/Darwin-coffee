@@ -43,6 +43,9 @@ class MonthForecast:
     mtd_net: Optional[Decimal] = None
     days_elapsed: Optional[int] = None
     days_in_month: Optional[int] = None
+    mtd_cogs: Optional[Decimal] = None        # себестоимость с начала месяца (факт)
+    projected_cogs: Optional[Decimal] = None  # себестоимость, экстраполированная на месяц
+    operating: Optional[Decimal] = None       # фиксированная операционка месяца
     # детали исторической модели (None для run-rate)
     low_net: Optional[Decimal] = None
     high_net: Optional[Decimal] = None
@@ -105,6 +108,9 @@ def forecast_runrate(session: Session, business_id: int, today: date) -> Optiona
         mtd_net=_q(mtd_net),
         days_elapsed=elapsed,
         days_in_month=dim,
+        mtd_cogs=_q(cogs_mtd),
+        projected_cogs=_q(proj_cogs),
+        operating=_q(operating_full),
     )
 
 

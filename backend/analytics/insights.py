@@ -44,6 +44,10 @@ class WeekOverWeek:
     last_revenue: Decimal
     this_net: Decimal
     last_net: Decimal
+    this_start: date          # границы недель — те же, что суммирует week_report
+    this_end: date
+    last_start: date
+    last_end: date
 
     @staticmethod
     def _change(now: Decimal, prev: Decimal) -> Optional[float]:
@@ -140,6 +144,8 @@ def compute(session: Session, business_id: int, today: date, window_days: int = 
             last_revenue=last_w.report.revenue,
             this_net=this_w.report.net_profit,
             last_net=last_w.report.net_profit,
+            this_start=this_w.start, this_end=this_w.end,
+            last_start=last_w.start, last_end=last_w.end,
         )
 
     return Insights(

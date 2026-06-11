@@ -96,21 +96,32 @@ def format_forecast(fc: MonthForecast) -> str:
     lines.append(
         f"Прогноз чистой прибыли: <b>{rub(fc.projected_net)}</b> ({_pct(fc.projected_margin_pct)})"
     )
-    lines.append(f"<i>Основа: {fc.basis}</i>")
 
-    if fc.mtd_revenue is not None:  # run-rate
+    if fc.mtd_revenue is not None:  # run-rate — расписываем арифметику для наглядности
+        scale = fc.days_in_month / fc.days_elapsed
+        lines.append("")
+        lines.append(f"<b>Как считаем</b> ({fc.days_elapsed} из {fc.days_in_month} дн., ×{scale:.2f}):")
+        lines.append(f"• Выручка: {rub(fc.mtd_revenue)} → {rub(fc.projected_revenue)}")
+        lines.append(f"• Себестоимость: {rub(fc.mtd_cogs)} → {rub(fc.projected_cogs)}")
+        lines.append(f"• Опер. расходы (фикс/мес): {rub(fc.operating)}")
+        lines.append(
+            f"• Прибыль: {rub(fc.projected_revenue)} − {rub(fc.projected_cogs)} − "
+            f"{rub(fc.operating)} = <b>{rub(fc.projected_net)}</b>"
+        )
         lines.append("")
         lines.append(
             f"Факт за {fc.days_elapsed}/{fc.days_in_month} дн.: "
             f"выручка {rub(fc.mtd_revenue)}, прибыль {rub(fc.mtd_net)}"
         )
-    if fc.low_net is not None:  # история
-        lines.append("")
-        lines.append(f"Разброс прибыли по месяцам: {rub(fc.low_net)} … {rub(fc.high_net)}")
-    if fc.last_year_net is not None:
-        lines.append(
-            f"Год назад: прибыль {rub(fc.last_year_net)}, выручка {rub(fc.last_year_revenue)}"
-        )
+    else:  # историческая модель
+        lines.append(f"<i>Основа: {fc.basis}</i>")
+        if fc.low_net is not None:
+            lines.append("")
+            lines.append(f"Разброс прибыли по месяцам: {rub(fc.low_net)} … {rub(fc.high_net)}")
+        if fc.last_year_net is not None:
+            lines.append(
+                f"Год назад: прибыль {rub(fc.last_year_net)}, выручка {rub(fc.last_year_revenue)}"
+            )
     return "\n".join(lines)
 
 
@@ -126,14 +137,16 @@ def format_insights(ins: Insights) -> str:
 
     lines = [f"{BRAND} — Аналитика ({ins.window_label})", ""]
     if ins.wow:
-        lines.append("<b>Неделя к неделе:</b>")
+        w = ins.wow
         lines.append(
-            f"Выручка: {rub(ins.wow.this_revenue)} vs {rub(ins.wow.last_revenue)} "
-            f"{_signed(ins.wow.revenue_change_pct)}"
+            f"<b>Неделя к неделе</b> "
+            f"({w.last_start:%d.%m}–{w.last_end:%d.%m} vs {w.this_start:%d.%m}–{w.this_end:%d.%m}):"
         )
         lines.append(
-            f"Прибыль: {rub(ins.wow.this_net)} vs {rub(ins.wow.last_net)} "
-            f"{_signed(ins.wow.net_change_pct)}"
+            f"Выручка: {rub(w.last_revenue)} → {rub(w.this_revenue)} {_signed(w.revenue_change_pct)}"
+        )
+        lines.append(
+            f"Прибыль: {rub(w.last_net)} → {rub(w.this_net)} {_signed(w.net_change_pct)}"
         )
         lines.append("")
     if ins.top_by_profit:
