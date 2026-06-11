@@ -20,16 +20,20 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal as D
 from pathlib import Path
 
+from sqlalchemy import func, select
+
 from backend import darwin_data
-from backend.analytics import forecast
+from backend.analytics import forecast, insights as insights_mod
 from backend.bot import formatting, metrics
-from backend.models import ExpenseCategory as C
+from backend.db import SessionLocal
+from backend.models import ExpenseCategory as C, Receipt
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "darwin_dashboard.template.html"
@@ -158,8 +162,162 @@ def _tg_digest() -> str:
     return text.replace("\n", "<br>")
 
 
+# --- реальные данные Эвотора для страницы «Обзор» ----------------------------
+
+def _esc(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _delta(now: D, prev: D) -> tuple[str, str]:
+    if not prev:
+        return "", "нет базы за прошлую неделю"
+    pct = (D(now - prev) / D(prev) * 100).quantize(D("0.1"), rounding=ROUND_HALF_UP)
+    return ("up" if pct >= 0 else "down"), f"{'↑' if pct >= 0 else '↓'} {abs(pct)}% к прошлой неделе"
+
+
+def _kpi(cls: str, lbl: str, val: str, val_cls: str, d_cls: str, d_txt: str, sub: str) -> str:
+    vc = f" {val_cls}" if val_cls else ""
+    return (f'<div class="kpi {cls}"><div class="kpi-lbl">{lbl}</div>'
+            f'<div class="kpi-val{vc}">{val}</div>'
+            f'<div class="kpi-d {d_cls}">{d_txt}</div>'
+            f'<div class="kpi-sub">{sub}</div><div class="kpi-src">эвотор</div></div>')
+
+
+def _kpi_na(cls: str, lbl: str) -> str:
+    return (f'<div class="kpi {cls}"><div class="kpi-lbl">{lbl}</div>'
+            f'<div class="kpi-val v-muted">—</div>'
+            f'<div class="kpi-d">нет данных в Эвоторе</div>'
+            f'<div class="kpi-sub">не синхронизируется</div><div class="kpi-src">эвотор</div></div>')
+
+
+_PAY_NAMES = {"ELECTRON": "Карта / СБП", "CASH": "Наличные", "CREDIT": "Карта / СБП"}
+_PAY_COLORS = {"ELECTRON": "var(--blue)", "CREDIT": "var(--blue)", "CASH": "var(--green)"}
+
+
+def _overview(period_str: str = "7d") -> dict:
+    today = date.today()
+    end = datetime(today.year, today.month, today.day) + timedelta(days=1)
+    
+    if period_str == "сег":
+        start = end - timedelta(days=1)
+        prev_start = start - timedelta(days=1)
+        label_text = "сегодня"
+        days_count = 1
+    elif period_str == "вч":
+        end = end - timedelta(days=1)
+        start = end - timedelta(days=1)
+        prev_start = start - timedelta(days=1)
+        label_text = "вчера"
+        days_count = 1
+    elif period_str == "мес":
+        start = end - timedelta(days=30)
+        prev_start = start - timedelta(days=30)
+        label_text = "30 дней"
+        days_count = 30
+    elif "_" in period_str:
+        try:
+            parts = period_str.split("_")
+            start = datetime.strptime(parts[0], "%Y-%m-%d")
+            end_parsed = datetime.strptime(parts[1], "%Y-%m-%d")
+            end = end_parsed + timedelta(days=1)
+            days_count = (end - start).days
+            if days_count <= 0: days_count = 1
+            prev_start = start - timedelta(days=days_count)
+            label_text = f"{start.strftime('%d.%m')} - {end_parsed.strftime('%d.%m')}"
+        except Exception:
+            start = end - timedelta(days=7)
+            prev_start = start - timedelta(days=7)
+            label_text = "7 дней"
+            days_count = 7
+    else: # 7д
+        start = end - timedelta(days=7)
+        prev_start = start - timedelta(days=7)
+        label_text = "7 дней"
+        days_count = 7
+
+    with SessionLocal() as s:
+        biz = metrics.get_business_id(s)
+        cur = metrics.sales_aggregate(s, biz, start, end)
+        prev = metrics.sales_aggregate(s, biz, prev_start, start)
+        ins = insights_mod.compute(s, biz, today)
+        pay = s.execute(
+            select(Receipt.payment_type, func.count(), func.coalesce(func.sum(Receipt.total_sum), ZERO))
+            .where(Receipt.business_id == biz, Receipt.sold_at >= start, Receipt.sold_at < end)
+            .group_by(Receipt.payment_type)
+        ).all()
+        hour_rows = s.execute(
+            select(func.extract('hour', Receipt.sold_at), func.coalesce(func.sum(Receipt.total_sum), ZERO))
+            .where(Receipt.business_id == biz, Receipt.sold_at >= start, Receipt.sold_at < end)
+            .group_by(func.extract('hour', Receipt.sold_at))
+        ).all()
+
+    checks, revenue = cur['checks'], cur['revenue']
+    avg = revenue / checks if checks else ZERO
+    prev_avg = prev['revenue'] / prev['checks'] if prev['checks'] else ZERO
+    rev_cls, rev_txt = _delta(revenue, prev['revenue'])
+    avg_cls, avg_txt = _delta(avg, prev_avg)
+
+    kpis = (
+        _kpi('k-rev', 'Выручка', f"{_money(revenue)}₽", 'gold', rev_cls, rev_txt, f"{label_text} · {checks} чеков")
+        + _kpi('k-chk', 'Средний чек', f"{_money(avg)}₽", '', avg_cls, avg_txt, f"{checks} чеков за {label_text}")
+        + _kpi_na('k-ret', 'Возвраты') + _kpi_na('k-dis', 'Скидки')
+    )
+
+    rows = []
+    for t in ins.top_by_profit[:5]:
+        margin = (t.profit / t.revenue * 100) if t.revenue else ZERO
+        mcls = 'g' if margin >= 50 else ('o' if margin < 25 else '')
+        rows.append(
+            f'<tr><td><strong>{_esc(t.name)}</strong></td><td class="r">{_r(t.qty)}</td>'
+            f'<td class="r">{_money(t.revenue)}₽</td><td class="r v-pos">{_money(t.profit)}₽</td>'
+            f'<td class="r"><div class="mbar"><div class="mbar-bg">'
+            f'<div class="mbar-fill {mcls}" style="width:{min(100, _r(margin))}%"></div></div>'
+            f'<span style="font-size:11px;font-weight:600">{_r(margin)}%</span></div></td></tr>'
+        )
+    top_rows = '\n'.join(rows) or '<tr><td colspan="5" class="v-muted">Нет продаж за период</td></tr>'
+
+    total_pay = sum((amt for _, _, amt in pay), ZERO)
+    cells, electron = [], ZERO
+    for pt, _cnt, amt in sorted(pay, key=lambda r: r[2], reverse=True):
+        share = _r(amt / total_pay * 100) if total_pay else 0
+        col = _PAY_COLORS.get(pt, '')
+        style = f'color:{col}' if col else ''
+        if pt in ('ELECTRON', 'CREDIT'):
+            electron += amt
+        pay_name = _PAY_NAMES.get(pt, pt or 'Прочее')
+        cells.append(
+            '<div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">'
+            f'<div style="font-family:var(--D);font-size:22px;font-weight:800;{style}">{share}%</div>'
+            f'<div style="font-size:11px;color:var(--muted);margin-top:3px">{pay_name}</div>'
+            f'<div style="font-size:12px;font-weight:500;margin-top:2px">{_money(amt)}₽</div></div>'
+        )
+
+    hours = {int(h): amt for h, amt in hour_rows}
+    vals = [int(hours.get(h, ZERO)) for h in range(24)]
+    if any(vals):
+        peak = max(range(24), key=lambda h: vals[h])
+        share = _r(D(vals[peak]) / D(sum(vals)) * 100)
+        hnote = f'<span style="color:var(--green);font-weight:600">{peak:02d}:00–{peak+1:02d}:00</span> → {share}% выручки за {label_text} (пик)'
+    else:
+        hnote = 'Нет продаж за период'
+
+    wow = ins.wow
+    wow_txt = 'нет сравнения' if not wow or wow.revenue_change_pct is None else f"{_r(wow.revenue_change_pct)}% к прошлой неделе"
+
+    return {
+        'EVOTOR_KPIS': kpis,
+        'OV_TOP_ROWS': top_rows,
+        'OV_PAY_METHODS': '\n'.join(cells),
+        'OV_PAY_ACQUIRING': f'Эквайринг (карта/СБП): ~2.5% → <strong style="color:var(--red)">{_money(electron * D("0.025"))}₽/нед</strong> расход за {label_text}',
+        'OV_HOURLY_VALS': json.dumps(vals),
+        'OV_HOURLY_NOTE': hnote,
+        'OV_WOW': wow_txt,
+        'OV_WINDOW': ins.window_label,
+    }
+
+
 # --- сборка значений --------------------------------------------------------------
-def compute() -> dict:
+def compute(period_str: str = '7д') -> dict:
     period = metrics.latest_month_period()
     month = _month_pl(period)
     annual = _annual_pl()
@@ -195,8 +353,20 @@ def compute() -> dict:
         "EXP_COGS": _money(month["cogs"]),
         "EXP_TOTAL": _money(month["opex"] + month["cogs"]),
 
+        # Сценарный анализ «Что-Если» базовые данные
+        "BASE_DATA_JSON": json.dumps({
+            "revenue": float(month["rev"]),
+            "cogs": float(month["cogs"]),
+            "expenses": {
+                cat.name: float(op.get(cat, ZERO))
+                for cat in C if cat != C.COGS
+            }
+        }, ensure_ascii=False),
+
         # Telegram-дайджест (реальный текст бота)
         "TG_DIGEST": _tg_digest(),
+        # Реальные данные Эвотора для страницы «Обзор»
+        **_overview(period_str),
     }
 
 
@@ -216,9 +386,9 @@ def render(values: dict) -> str:
     return html.replace("<!DOCTYPE html>", "<!DOCTYPE html>\n" + note, 1)
 
 
-def build_html() -> str:
+def build_html(period_str: str = '7д') -> str:
     """Собрать свежий HTML панели в память (без записи на диск) — для отдачи ботом."""
-    return render(compute())
+    return render(compute(period_str))
 
 
 def main() -> None:

@@ -23,11 +23,11 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, List, Optional
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from backend import actuals_data, darwin_data
 from backend.financial.profit_calculator import ProfitCalculator, ProfitReport
-from backend.models import Business, ExpenseCategory as C, Receipt
+from backend.models import Business, ExpenseCategory as C, Receipt, ReceiptItem
 
 ZERO = Decimal("0")
 CENT = Decimal("0.01")
@@ -175,7 +175,9 @@ def _operating_for_range(start: date, end: date) -> Dict[C, Decimal]:
 def sales_aggregate(session: Session, business_id: int, start_dt: datetime, end_dt: datetime):
     """Свод по чекам в [start_dt, end_dt): выручка, реальный COGS, чеки, топ товаров."""
     receipts = session.scalars(
-        select(Receipt).where(
+        select(Receipt)
+        .options(selectinload(Receipt.items).selectinload(ReceiptItem.product))
+        .where(
             Receipt.business_id == business_id,
             Receipt.sold_at >= start_dt,
             Receipt.sold_at < end_dt,
@@ -196,7 +198,7 @@ def sales_aggregate(session: Session, business_id: int, start_dt: datetime, end_
 
     top = sorted(
         (TopProduct(n, v[0], v[1], v[2]) for n, v in agg.items()),
-        key=lambda t: t.revenue,
+        key=lambda t: t.profit,
         reverse=True,
     )
     return {"revenue": revenue, "cogs": cogs, "checks": len(receipts), "top": top}

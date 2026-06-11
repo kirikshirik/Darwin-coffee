@@ -35,7 +35,8 @@ async def _dashboard(request: web.Request) -> web.Response:
     try:
         # SystemExit ловим явно: build_html → render() так сигналит о незаполненном шаблоне.
         # Таймаут 10сек — если дольше, значит что-то завис (N+1 запросы, медленная Neon, etc)
-        html = await asyncio.wait_for(asyncio.to_thread(dashboard.build_html), timeout=10)
+        period = request.query.get("period", "7д")
+        html = await asyncio.wait_for(asyncio.to_thread(dashboard.build_html, period), timeout=10)
     except asyncio.TimeoutError:
         log.warning("ops-панель собиралась >10сек (завис?); вероятно медленные DB-запросы или Neon холодный старт")
         return web.Response(status=503, text="Сервис перегружен: сборка панели заняла >10сек. Повторите запрос через минуту.")
@@ -49,12 +50,25 @@ async def _dashboard(request: web.Request) -> web.Response:
     )
 
 
+async def _sync(request: web.Request) -> web.Response:
+    from backend.integrations.evotor import sync
+    token = os.getenv("DASHBOARD_TOKEN", "").strip()
+    if token and request.query.get("key", "") != token:
+        return web.Response(status=403, text="Доступ запрещён.")
+    try:
+        await asyncio.to_thread(sync.sync)
+        return web.json_response({"status": "ok"})
+    except Exception as e:
+        log.exception("Ошибка при синхронизации")
+        return web.json_response({"status": "error", "message": str(e)}, status=500)
+
 async def start_health_server(port: int) -> web.AppRunner:
     """Поднять веб-сервер на 0.0.0.0:port. Вернуть runner для остановки (cleanup)."""
     app = web.Application()
     app.router.add_get("/", _ok)
     app.router.add_get("/healthz", _ok)
     app.router.add_get("/dashboard", _dashboard)
+    app.router.add_post("/api/sync", _sync)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)

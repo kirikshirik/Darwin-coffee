@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- АВТОГЕНЕРАЦИЯ 2026-06-11 18:23 · backend/dashboard.py · реальный P&L + демо-панели Эвотора. Правь darwin_dashboard.template.html. -->
+
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -105,6 +107,15 @@
 [data-theme="dark"] .tt-track { background: var(--gold); }
 [data-theme="dark"] .tt-thumb { transform: translateX(14px); background: #1a1a1a; }
 [data-theme="dark"] .tt-label { color: var(--gold); }
+/* ── DEMO badge (панели без реальных данных — ждут подключения Эвотора) ── */
+.demo-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  background: var(--orange-lt); color: var(--orange);
+  border:1px solid rgba(201,104,32,.3); border-radius:20px;
+  padding:2px 9px; font-family: var(--D); font-size:9px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; vertical-align:middle;
+}
+.demo-badge::before { content:''; width:5px; height:5px; border-radius:50%; background: var(--orange); }
 * { margin:0; padding:0; box-sizing:border-box; }
 *, *::before, *::after { transition: var(--transition); }
 /* don't animate transitions that shouldn't move */
@@ -114,7 +125,10 @@
 body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight:300; overflow-x:hidden; }
 
 /* ── LAYOUT ── */
-.shell { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+/* Сайдбар position:fixed (вне потока), а .main смещается margin-left — поэтому
+   .shell НЕ грид: иначе единственный поточный .main попадал в 1-ю колонку 220px
+   и зажимал контент (грид-карточки .kpi схлопывались в узкую колонку). */
+.shell { display:block; min-height:100vh; }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -347,6 +361,151 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 .cb-desc { font-size:12px; color:var(--muted); }
 .cb-btn { background:var(--orange); color:#fff; font-family:var(--D); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:8px 14px; border-radius:6px; border:none; cursor:pointer; white-space:nowrap; }
 
+  /* ── WHAT IF PAGE STYLES ── */
+  .wi-card-glow {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .wi-card-glow::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .wi-card-glow.g-green::before { background: var(--green); }
+  .wi-card-glow.g-blue::before { background: var(--blue); }
+  .wi-card-glow.g-gold::before { background: var(--gold); }
+
+  [data-theme="dark"] .wi-card-glow.g-green { box-shadow: 0 0 15px rgba(58,158,101,0.15); }
+  [data-theme="dark"] .wi-card-glow.g-blue { box-shadow: 0 0 15px rgba(74,127,212,0.15); }
+  [data-theme="dark"] .wi-card-glow.g-gold { box-shadow: 0 0 15px rgba(212,168,64,0.15); }
+
+  .slider-group {
+    margin-bottom: 16px;
+  }
+  .slider-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .slider-lbl { color: var(--ink); }
+  .slider-val {
+    font-family: var(--D);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--bg2);
+    color: var(--ink);
+    min-width: 52px;
+    text-align: center;
+  }
+  .slider-val.pos { background: var(--green-lt); color: var(--green); }
+  .slider-val.neg { background: var(--red-lt); color: var(--red); }
+
+  .wi-range {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    margin: 8px 0;
+  }
+  .wi-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    border: 2px solid var(--card);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.1s ease;
+  }
+  .wi-range::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+  }
+  .wi-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    border: 2px solid var(--card);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.1s ease;
+  }
+  .wi-range::-moz-range-thumb:hover {
+    transform: scale(1.25);
+  }
+
+  .presets-container {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .preset-btn {
+    font-family: var(--S);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .preset-btn:hover {
+    background: var(--border);
+    border-color: var(--border2);
+  }
+  .preset-btn.active {
+    background: var(--gold-lt);
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  .result-glow-val {
+    font-family: var(--KPI);
+    font-size: 42px;
+    font-weight: 400;
+    line-height: 1.1;
+    margin-bottom: 2px;
+    letter-spacing: .02em;
+  }
+  .result-glow-val.green { color: var(--green); text-shadow: 0 0 10px rgba(58,158,101,0.1); }
+  .result-glow-val.blue { color: var(--blue); text-shadow: 0 0 10px rgba(74,127,212,0.1); }
+  .result-glow-val.gold { color: var(--gold); text-shadow: 0 0 10px rgba(212,168,64,0.1); }
+
+  [data-theme="dark"] .result-glow-val.green { text-shadow: 0 0 15px rgba(58,158,101,0.3); }
+  [data-theme="dark"] .result-glow-val.blue { text-shadow: 0 0 15px rgba(74,127,212,0.3); }
+  [data-theme="dark"] .result-glow-val.gold { text-shadow: 0 0 15px rgba(212,168,64,0.3); }
+
+  .delta-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .delta-pill.up { background: var(--green-lt); color: var(--green); }
+  .delta-pill.down { background: var(--red-lt); color: var(--red); }
+  .delta-pill.neutral { background: var(--bg2); color: var(--muted); }
+
 @media(max-width:900px){
   .shell{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0}
   .row4,.row3,.row2{grid-template-columns:1fr 1fr}
@@ -368,8 +527,8 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
   <div class="sb-status">
     <div class="sb-status-dot"></div>
     <div class="sb-status-text">
-      Эвотор подключён
-      <small>Синх: сегодня 08:14</small>
+      Эвотор не подключён
+      <small>Демо-режим · только Excel-данные</small>
     </div>
   </div>
 
@@ -378,6 +537,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
       <div class="sb-sec-lbl">Обзор</div>
       <div class="sb-item active" onclick="nav('overview',this)"><span class="sb-ico">◈</span>Главная</div>
       <div class="sb-item" onclick="nav('pl',this)"><span class="sb-ico">◻</span>P&amp;L / Прибыль</div>
+      <div class="sb-item" onclick="nav('whatif',this)"><span class="sb-ico">⚖</span>Анализ «Что-Если»</div>
     </div>
     <div class="sb-sec">
       <div class="sb-sec-lbl">Данные Эвотор</div>
@@ -398,9 +558,9 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
   <div class="sb-sync">
     <div class="sb-sync-lbl">Статус синхронизации</div>
-    <div class="sb-sync-row"><span>Чеков сегодня</span><span>103</span></div>
-    <div class="sb-sync-row"><span>Последний чек</span><span>14:32</span></div>
-    <div class="sb-sync-row"><span>Товаров в каталоге</span><span>48</span></div>
+    <div class="sb-sync-row"><span>Чеков сегодня</span><span class="v-muted">—</span></div>
+    <div class="sb-sync-row"><span>Последний чек</span><span class="v-muted">—</span></div>
+    <div class="sb-sync-row"><span>Товаров в каталоге</span><span class="v-muted">—</span></div>
     <button class="sb-sync-btn" onclick="syncNow()">↺ Синхронизировать</button>
   </div>
 </aside>
@@ -409,20 +569,29 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 <div class="main">
   <div class="topbar">
     <div class="tb-title" id="tb-title">Главная</div>
-    <div class="tb-date">Вторник, 10 июня 2025</div>
+    <div class="tb-date">11.06.2026</div>
     <div class="tb-sp"></div>
     <div class="tb-evotor">
       <div class="tb-evotor-logo">ЭВОТОР</div>
-      <span>API · онлайн</span>
+      <span>API · не подключён</span>
     </div>
     <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
       <span class="tt-label" id="tt-lbl">Светлая</span>
       <div class="tt-track"><div class="tt-thumb" id="tt-thumb">☀️</div></div>
     </div>
     <div class="tb-period">
+      <button onclick="setPer(this,'сег')">Сегодня</button>
       <button onclick="setPer(this,'вч')">Вчера</button>
       <button class="active" onclick="setPer(this,'7д')">7 дней</button>
       <button onclick="setPer(this,'мес')">Месяц</button>
+      <div style="position: relative; display: inline-block;">
+         <button id="btn-custom-per" onclick="document.getElementById('custom-dates').style.display = document.getElementById('custom-dates').style.display === 'none' ? 'flex' : 'none'">Выбрать период</button>
+         <div id="custom-dates" style="display:none; position:absolute; top:calc(100% + 5px); right:0; background:var(--card); border:1px solid var(--border); padding:10px; border-radius:5px; z-index:100; flex-direction:column; gap:8px; box-shadow:var(--shadow); width: 140px;">
+             <label style="font-size:10px; display:flex; flex-direction:column; gap:2px; color:var(--muted)">От: <input type="date" id="date-from" style="font-size:11px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--ink)"></label>
+             <label style="font-size:10px; display:flex; flex-direction:column; gap:2px; color:var(--muted)">До: <input type="date" id="date-to" style="font-size:11px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--ink)"></label>
+             <button onclick="applyCustomDates()" style="background:var(--ink); color:var(--bg); padding:6px; border:none; border-radius:4px; font-family:var(--D); font-size:10px; font-weight:700; cursor:pointer; text-transform:uppercase; margin-top:4px; text-align:center; display:block; width:100%">Применить</button>
+         </div>
+      </div>
     </div>
   </div>
 
@@ -438,60 +607,31 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
     </div>
 
     <!-- KPI ROW 1: из Эвотора -->
-    <div style="font-family:var(--D);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>Из Эвотора</span><div style="flex:1;height:1px;background:var(--border)"></div><span class="src evo">эвотор</span></div>
-    <div class="row4" style="margin-bottom:12px">
-      <div class="kpi k-rev">
-        <div class="kpi-lbl">Выручка</div>
-        <div class="kpi-val gold">187 430₽</div>
-        <div class="kpi-d up">↑ 11.4% к прошлой неделе</div>
-        <div class="kpi-sub">7 дней · 703 чека</div>
-        <div class="kpi-src">эвотор</div>
-      </div>
-      <div class="kpi k-chk">
-        <div class="kpi-lbl">Средний чек</div>
-        <div class="kpi-val">266₽</div>
-        <div class="kpi-d up">↑ 4.1% к прошлой</div>
-        <div class="kpi-sub">703 чека за 7 дней</div>
-        <div class="kpi-src">эвотор</div>
-      </div>
-      <div class="kpi k-ret">
-        <div class="kpi-lbl">Возвраты</div>
-        <div class="kpi-val red">4 чека</div>
-        <div class="kpi-d warn">1 340₽ — 0.7% от выручки</div>
-        <div class="kpi-sub">норма &lt; 1%</div>
-        <div class="kpi-src">эвотор</div>
-      </div>
-      <div class="kpi k-dis">
-        <div class="kpi-lbl">Скидки</div>
-        <div class="kpi-val orange">9 200₽</div>
-        <div class="kpi-d warn">4.9% от выручки</div>
-        <div class="kpi-sub">карты лояльности: 38 чеков</div>
-        <div class="kpi-src">эвотор</div>
-      </div>
-    </div>
+    <div style="font-family:var(--D);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>Из Эвотора</span><div style="flex:1;height:1px;background:var(--border)"></div><span class="src evo">7 дней</span></div>
+    <div class="row4" style="margin-bottom:12px"><div class="kpi k-rev"><div class="kpi-lbl">Выручка</div><div class="kpi-val gold">3 480₽</div><div class="kpi-d up">↑ 192.4% к прошлой неделе</div><div class="kpi-sub">7 дней · 8 чеков</div><div class="kpi-src">эвотор</div></div><div class="kpi k-chk"><div class="kpi-lbl">Средний чек</div><div class="kpi-val">435₽</div><div class="kpi-d up">↑ 9.7% к прошлой неделе</div><div class="kpi-sub">8 чеков за 7 дней</div><div class="kpi-src">эвотор</div></div><div class="kpi k-ret"><div class="kpi-lbl">Возвраты</div><div class="kpi-val v-muted">—</div><div class="kpi-d">нет данных в Эвоторе</div><div class="kpi-sub">не синхронизируется</div><div class="kpi-src">эвотор</div></div><div class="kpi k-dis"><div class="kpi-lbl">Скидки</div><div class="kpi-val v-muted">—</div><div class="kpi-d">нет данных в Эвоторе</div><div class="kpi-sub">не синхронизируется</div><div class="kpi-src">эвотор</div></div></div>
 
     <!-- KPI ROW 2: расчётные -->
     <div style="font-family:var(--D);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>Расчётные показатели</span><div style="flex:1;height:1px;background:var(--border)"></div><span class="src calc">расчёт</span></div>
     <div class="row3" style="margin-bottom:22px">
       <div class="kpi k-gp">
         <div class="kpi-lbl">Валовая прибыль</div>
-        <div class="kpi-val green">125 180₽</div>
-        <div class="kpi-d up">Маржа: 66.8%</div>
-        <div class="kpi-sub">Выручка − себестоимость</div>
+        <div class="kpi-val green">281 497₽</div>
+        <div class="kpi-d up">Маржа: 91.8%</div>
+        <div class="kpi-sub">Май 2026 · выручка − закупка</div>
         <div class="kpi-src">расчёт</div>
       </div>
       <div class="kpi k-np">
         <div class="kpi-lbl">Чистая прибыль</div>
-        <div class="kpi-val blue">31 430₽</div>
-        <div class="kpi-d up">Маржа: 16.8%</div>
-        <div class="kpi-sub">После всех расходов</div>
+        <div class="kpi-val blue">99 431₽</div>
+        <div class="kpi-d up">Маржа: 32.4%</div>
+        <div class="kpi-sub">Май 2026 · после всех расходов</div>
         <div class="kpi-src">расчёт</div>
       </div>
       <div class="kpi k-np" style="border-color:rgba(201,168,76,.3)">
         <div class="kpi-lbl">Прогноз месяца</div>
-        <div class="kpi-val gold">134 700₽</div>
-        <div class="kpi-d up">Чистая прибыль · июнь</div>
-        <div class="kpi-sub">На основе темпа недели</div>
+        <div class="kpi-val gold">45 651₽</div>
+        <div class="kpi-d up">Чистая прибыль · Июнь</div>
+        <div class="kpi-sub">По истории последних месяцев</div>
         <div class="kpi-src">расчёт</div>
       </div>
     </div>
@@ -500,38 +640,28 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
     <div class="row2" style="margin-bottom:14px">
       <div class="card">
         <div class="card-hdr">
-          <div class="card-title">Выручка по часам · вчера</div>
-          <span class="src evo">эвотор</span>
+          <div class="card-title">Выручка по часам · 7 дней</div>
         </div>
         <div style="padding:16px 20px 8px">
           <div class="hchart" id="hchart"></div>
           <div class="hchart-labels" id="hchart-labels"></div>
-          <div style="font-size:11px;color:var(--muted);margin-top:10px">
-            <span style="color:var(--green);font-weight:600">08:00–10:00</span> → 30% всей выручки дня &nbsp;·&nbsp;
-            <span style="color:var(--muted)">14:00–16:00</span> → минимум
-          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px" id="hchart-note"><span style="color:var(--green);font-weight:600">11:00–12:00</span> → 45% выручки за 7 дней (пик)</div>
         </div>
       </div>
 
       <div class="card">
         <div class="card-hdr">
           <div class="card-title">Топ товаров по прибыли</div>
-          <span class="src calc">расчёт</span>
         </div>
         <div>
           <table class="tbl">
             <thead><tr><th>Товар</th><th class="r">Продано</th><th class="r">Выручка</th><th class="r">Прибыль</th><th class="r">Маржа</th></tr></thead>
             <tbody>
-              <tr><td><strong>Капучино</strong></td><td class="r">312</td><td class="r">93 600₽</td><td class="r v-pos">58 000₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:62%"></div></div><span style="font-size:11px;color:var(--green);font-weight:600">62%</span></div></td></tr>
-              <tr><td><strong>Раф</strong></td><td class="r">148</td><td class="r">59 200₽</td><td class="r v-pos">40 000₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:68%"></div></div><span style="font-size:11px;color:var(--green);font-weight:600">68%</span></div></td></tr>
-              <tr><td>Латте</td><td class="r">243</td><td class="r">72 900₽</td><td class="r v-pos">39 000₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill" style="width:53%"></div></div><span style="font-size:11px;color:var(--gold);font-weight:600">53%</span></div></td></tr>
-              <tr><td>Американо</td><td class="r">187</td><td class="r">28 050₽</td><td class="r v-pos">19 800₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:71%"></div></div><span style="font-size:11px;color:var(--green);font-weight:600">71%</span></div></td></tr>
-              <tr><td style="color:var(--muted)">Чизкейк</td><td class="r v-muted">89</td><td class="r v-muted">26 700₽</td><td class="r v-warn" style="color:var(--orange)">3 200₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill o" style="width:12%"></div></div><span style="font-size:11px;color:var(--orange);font-weight:600">12%</span></div></td></tr>
+              <tr><td><strong>Капучино 350</strong></td><td class="r">11</td><td class="r">2 420₽</td><td class="r v-pos">1 568₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:65%"></div></div><span style="font-size:11px;font-weight:600">65%</span></div></td></tr>
+<tr><td><strong>Латте 250</strong></td><td class="r">8</td><td class="r">1 600₽</td><td class="r v-pos">1 057₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:66%"></div></div><span style="font-size:11px;font-weight:600">66%</span></div></td></tr>
+<tr><td><strong>Круассан</strong></td><td class="r">5</td><td class="r">650₽</td><td class="r v-pos">425₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:65%"></div></div><span style="font-size:11px;font-weight:600">65%</span></div></td></tr>
             </tbody>
           </table>
-          <div style="padding:10px 14px;background:var(--orange-lt);font-size:11px;color:var(--orange);border-top:1px solid rgba(201,104,32,.15)">
-            ⚠ Чизкейк: выручка 26к, прибыль 3.2к. Занимает место и время — рассмотреть замену.
-          </div>
         </div>
       </div>
     </div>
@@ -539,31 +669,10 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
     <!-- PAYMENT TYPES -->
     <div class="card card-pad" style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div class="card-title">Способы оплаты <span class="src evo" style="margin-left:6px">эвотор</span></div>
+        <div class="card-title">Способы оплаты</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
-          <div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--blue)">58%</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">Карта</div>
-          <div style="font-size:12px;font-weight:500;margin-top:2px">108 700₽</div>
-        </div>
-        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
-          <div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--green)">28%</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">СБП</div>
-          <div style="font-size:12px;font-weight:500;margin-top:2px">52 500₽</div>
-        </div>
-        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
-          <div style="font-family:var(--D);font-size:22px;font-weight:800">11%</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">Наличные</div>
-          <div style="font-size:12px;font-weight:500;margin-top:2px">20 600₽</div>
-        </div>
-        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
-          <div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--orange)">3%</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">Лояльность</div>
-          <div style="font-size:12px;font-weight:500;margin-top:2px">5 600₽</div>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px">Эквайринг (карта+СБП): ~2.5% → <strong style="color:var(--red)">4 030₽/нед</strong> расход</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--blue)">100%</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Карта / СБП</div><div style="font-size:12px;font-weight:500;margin-top:2px">3 480₽</div></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">Эквайринг (карта/СБП): ~2.5% → <strong style="color:var(--red)">87₽/нед</strong> расход за 7 дней</div>
     </div>
 
   </div><!-- /overview -->
@@ -571,98 +680,190 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
   <!-- ══ PAGE: P&L ══ -->
   <div class="page" id="page-pl">
     <div class="sec-h">P&amp;L · Отчёт о прибыли</div>
-    <div class="sec-sub">7 дней · 3–9 июня 2025 · расчёт по формуле: Выручка − Себестоимость − Расходы = Чистая прибыль</div>
+    <div class="sec-sub">Май 2026 и 12 мес · честный P&amp;L (COGS = закупка товара; ФОТ — в опер. расходах). Источник: Excel владельца, не Эвотор.</div>
 
     <div class="pl-wrap">
-      <div class="pl-row hdr">
-        <div class="pl-c">Статья</div>
-        <div class="pl-c r">7 дней</div>
-        <div class="pl-c r">Месяц (прогноз)</div>
-        <div class="pl-c r">Источник</div>
-      </div>
-
-      <!-- ДОХОДЫ -->
-      <div class="pl-row section"><div class="pl-c">Доходы</div><div class="pl-c"></div><div class="pl-c"></div><div class="pl-c"></div></div>
-      <div class="pl-row">
-        <div class="pl-c">Выручка (брутто)</div>
-        <div class="pl-c r v-pos">187 430₽</div>
-        <div class="pl-c r v-pos">802 700₽</div>
-        <div class="pl-c r"><span class="src evo">эвотор</span></div>
-      </div>
-      <div class="pl-row">
-        <div class="pl-c">Возвраты</div>
-        <div class="pl-c r v-neg">−1 340₽</div>
-        <div class="pl-c r v-neg">−5 700₽</div>
-        <div class="pl-c r"><span class="src evo">эвотор</span></div>
-      </div>
-      <div class="pl-row">
-        <div class="pl-c">Скидки</div>
-        <div class="pl-c r v-neg">−9 200₽</div>
-        <div class="pl-c r v-neg">−39 400₽</div>
-        <div class="pl-c r"><span class="src evo">эвотор</span></div>
-      </div>
-      <div class="pl-row subtotal">
-        <div class="pl-c">Выручка (нетто)</div>
-        <div class="pl-c r v-pos">176 890₽</div>
-        <div class="pl-c r v-pos">757 600₽</div>
-        <div class="pl-c r"><span class="src calc">расчёт</span></div>
-      </div>
-
-      <!-- СЕБЕСТОИМОСТЬ -->
-      <div class="pl-row section"><div class="pl-c">Себестоимость</div><div class="pl-c"></div><div class="pl-c"></div><div class="pl-c"></div></div>
-      <div class="pl-row">
-        <div class="pl-c">Ингредиенты / сырьё</div>
-        <div class="pl-c r v-neg">−51 710₽</div>
-        <div class="pl-c r v-neg">−221 500₽</div>
-        <div class="pl-c r"><span class="src man">вручную</span></div>
-      </div>
-      <div class="pl-row subtotal">
-        <div class="pl-c">Валовая прибыль</div>
-        <div class="pl-c r v-pos">125 180₽</div>
-        <div class="pl-c r v-pos">536 100₽</div>
-        <div class="pl-c r"><span class="src calc">расчёт</span></div>
-      </div>
-      <div class="pl-row">
-        <div class="pl-c v-muted" style="font-size:11px;padding-left:28px">Маржа</div>
-        <div class="pl-c r v-muted" style="font-size:11px">66.8%</div>
-        <div class="pl-c r v-muted" style="font-size:11px">66.8%</div>
-        <div class="pl-c"></div>
-      </div>
-
-      <!-- РАСХОДЫ -->
-      <div class="pl-row section"><div class="pl-c">Операционные расходы</div><div class="pl-c"></div><div class="pl-c"></div><div class="pl-c"></div></div>
-      <div class="pl-row"><div class="pl-c">Аренда</div><div class="pl-c r v-neg">−27 906₽</div><div class="pl-c r v-neg">−120 000₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
-      <div class="pl-row"><div class="pl-c">Зарплаты (ФОТ)</div><div class="pl-c r v-neg">−58 140₽</div><div class="pl-c r v-neg">−249 200₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
-      <div class="pl-row"><div class="pl-c">Коммуналка</div><div class="pl-c r v-neg">−4 186₽</div><div class="pl-c r v-neg">−18 000₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
-      <div class="pl-row"><div class="pl-c">Эквайринг (2.5%)</div><div class="pl-c r v-neg">−4 030₽</div><div class="pl-c r v-neg">−17 300₽</div><div class="pl-c r"><span class="src calc">расчёт</span></div></div>
-      <div class="pl-row"><div class="pl-c">Налоги (УСН 6%)</div><div class="pl-c r v-neg">−10 613₽</div><div class="pl-c r v-neg">−45 500₽</div><div class="pl-c r"><span class="src calc">расчёт</span></div></div>
-      <div class="pl-row"><div class="pl-c">Реклама</div><div class="pl-c r v-neg">−2 326₽</div><div class="pl-c r v-neg">−10 000₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
-      <div class="pl-row"><div class="pl-c">Прочее</div><div class="pl-c r v-neg">−3 488₽</div><div class="pl-c r v-neg">−15 000₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
-      <div class="pl-row subtotal"><div class="pl-c">Итого расходов</div><div class="pl-c r v-neg">−110 689₽</div><div class="pl-c r v-neg">−475 000₽</div><div class="pl-c r"><span class="src calc">расчёт</span></div></div>
-
-      <!-- ИТОГ -->
-      <div class="pl-row total">
-        <div class="pl-c">ЧИСТАЯ ПРИБЫЛЬ</div>
-        <div class="pl-c r v-gold" id="np-7d">31 430₽</div>
-        <div class="pl-c r v-gold">134 700₽</div>
-        <div class="pl-c r"><span class="src calc">расчёт</span></div>
-      </div>
-      <div class="pl-row">
-        <div class="pl-c v-muted" style="font-size:11px;padding-left:28px">Чистая маржа</div>
-        <div class="pl-c r v-muted" style="font-size:11px">16.8%</div>
-        <div class="pl-c r v-muted" style="font-size:11px">16.8%</div>
-        <div class="pl-c"></div>
-      </div>
+      <div class="pl-row hdr"><div class="pl-c">Статья</div><div class="pl-c r">Май 2026</div><div class="pl-c r">12 мес · факт</div><div class="pl-c r">Источник</div></div>
+<div class="pl-row section"><div class="pl-c">Доходы</div><div class="pl-c"></div><div class="pl-c"></div><div class="pl-c"></div></div>
+<div class="pl-row"><div class="pl-c">Выручка</div><div class="pl-c r v-pos">306 497₽</div><div class="pl-c r v-pos">3 733 684₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Возвраты</div><div class="pl-c r "><span class="v-muted">н/д</span></div><div class="pl-c r "><span class="v-muted">н/д</span></div><div class="pl-c r"><span class="src evo">эвотор</span></div></div>
+<div class="pl-row"><div class="pl-c">Скидки</div><div class="pl-c r "><span class="v-muted">н/д</span></div><div class="pl-c r "><span class="v-muted">н/д</span></div><div class="pl-c r"><span class="src evo">эвотор</span></div></div>
+<div class="pl-row section"><div class="pl-c">Себестоимость</div><div class="pl-c"></div><div class="pl-c"></div><div class="pl-c"></div></div>
+<div class="pl-row"><div class="pl-c">Закупка товара (COGS)</div><div class="pl-c r v-neg">−25 000₽</div><div class="pl-c r v-neg">−1 108 649₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Валовая прибыль</div><div class="pl-c r v-pos subtotal">281 497₽</div><div class="pl-c r v-pos subtotal">2 625 035₽</div><div class="pl-c r"><span class="src calc">расчёт</span></div></div>
+<div class="pl-row"><div class="pl-c v-muted" style="font-size:11px;padding-left:28px">Маржа</div><div class="pl-c r ">91.8%</div><div class="pl-c r ">70.3%</div><div class="pl-c r"></div></div>
+<div class="pl-row section"><div class="pl-c">Операционные расходы</div><div class="pl-c"></div><div class="pl-c"></div><div class="pl-c"></div></div>
+<div class="pl-row"><div class="pl-c">Аренда</div><div class="pl-c r v-neg">−84 530₽</div><div class="pl-c r v-neg">−1 003 300₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Затраты на персонал</div><div class="pl-c r v-neg">−82 424₽</div><div class="pl-c r v-neg">−984 162₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Коммунальные</div><div class="pl-c r v-neg">−9 135₽</div><div class="pl-c r v-neg">−112 399₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Эквайринг и QR-комиссия банка</div><div class="pl-c r v-muted">—</div><div class="pl-c r v-neg">−7 668₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Налоги</div><div class="pl-c r v-neg">−5 977₽</div><div class="pl-c r v-neg">−103 902₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Амортизация и ремонт оборудования</div><div class="pl-c r v-muted">—</div><div class="pl-c r v-neg">−22 084₽</div><div class="pl-c r"><span class="src man">вручную</span></div></div>
+<div class="pl-row"><div class="pl-c">Итого расходов</div><div class="pl-c r v-neg subtotal">−182 066₽</div><div class="pl-c r v-neg subtotal">−2 233 515₽</div><div class="pl-c r"><span class="src calc">расчёт</span></div></div>
+<div class="pl-row total"><div class="pl-c">ЧИСТАЯ ПРИБЫЛЬ</div><div class="pl-c r v-gold">99 431₽</div><div class="pl-c r v-gold">391 520₽</div><div class="pl-c r"><span class="src calc">расчёт</span></div></div>
+<div class="pl-row"><div class="pl-c v-muted" style="font-size:11px;padding-left:28px">Чистая маржа</div><div class="pl-c r ">32.4%</div><div class="pl-c r ">10.5%</div><div class="pl-c r"></div></div>
     </div>
 
     <div style="background:var(--green-lt);border:1px solid rgba(42,125,79,.2);border-radius:8px;padding:14px 18px;font-size:13px;color:var(--green)">
-      <strong style="font-family:var(--D)">Вывод:</strong> При выручке 187к за неделю — чистая прибыль 31.4к (16.8%). Прогноз на июнь: <strong>134 700₽</strong>. Главный дренаж — ФОТ (31% выручки) и аренда (15%).
+      <strong style="font-family:var(--D)">Вывод:</strong> Май 2026 — чистая прибыль <strong>99 431₽</strong> (32.4%). Прогноз на Июнь: <strong>45 651₽</strong>. По итогам 12 месяцев бизнес в плюсе; главный дренаж — ФОТ и аренда.
+  </div>
+
+  <!-- ══ PAGE: WHAT IF ══ -->
+  <div class="page" id="page-whatif">
+    <div class="sec-h">Анализ сценариев «Что-Если»</div>
+    <div class="sec-sub">Моделирование финансовых результатов при изменении операционных параметров. За базовый уровень взят честный P&amp;L за Май 2026.</div>
+
+    <div class="row2">
+      <!-- Left Column: Sliders & Presets -->
+      <div class="card card-pad">
+        <div class="card-title" style="margin-bottom:18px">Параметры сдвигов</div>
+        
+        <!-- Slider 1: Traffic -->
+        <div class="slider-group">
+          <div class="slider-hdr">
+            <span class="slider-lbl">Трафик (количество гостей / чеков)</span>
+            <span class="slider-val" id="val-traffic">0%</span>
+          </div>
+          <input type="range" class="wi-range" id="slide-traffic" min="-30" max="50" step="5" value="0" oninput="updateScenario()">
+        </div>
+
+        <!-- Slider 2: Average Check / Prices -->
+        <div class="slider-group">
+          <div class="slider-hdr">
+            <span class="slider-lbl">Цены в меню (средний чек)</span>
+            <span class="slider-val" id="val-price">0%</span>
+          </div>
+          <input type="range" class="wi-range" id="slide-price" min="-10" max="30" step="2" value="0" oninput="updateScenario()">
+        </div>
+
+        <!-- Slider 3: raw material costs / COGS -->
+        <div class="slider-group">
+          <div class="slider-hdr">
+            <span class="slider-lbl">Удорожание сырья (COGS) у поставщиков</span>
+            <span class="slider-val" id="val-cogs">0%</span>
+          </div>
+          <input type="range" class="wi-range" id="slide-cogs" min="0" max="50" step="5" value="0" oninput="updateScenario()">
+        </div>
+
+        <!-- Slider 4: Rent -->
+        <div class="slider-group">
+          <div class="slider-hdr">
+            <span class="slider-lbl">Аренда помещения</span>
+            <span class="slider-val" id="val-rent">0%</span>
+          </div>
+          <input type="range" class="wi-range" id="slide-rent" min="-20" max="50" step="5" value="0" oninput="updateScenario()">
+        </div>
+
+        <!-- Slider 5: Payroll -->
+        <div class="slider-group">
+          <div class="slider-hdr">
+            <span class="slider-lbl">Зарплаты бариста (ФОТ)</span>
+            <span class="slider-val" id="val-payroll">0%</span>
+          </div>
+          <input type="range" class="wi-range" id="slide-payroll" min="-20" max="50" step="5" value="0" oninput="updateScenario()">
+        </div>
+
+        <div class="card-title" style="margin-top:24px;margin-bottom:10px">Готовые сценарии</div>
+        <div class="presets-container">
+          <button class="preset-btn active" id="preset-reset" onclick="applyPreset('reset')">Сброс сдвигов</button>
+          <button class="preset-btn" id="preset-cogs-crisis" onclick="applyPreset('cogs-crisis')">Кризис сырья</button>
+          <button class="preset-btn" id="preset-optimization" onclick="applyPreset('optimization')">Оптимизация расходов</button>
+          <button class="preset-btn" id="preset-growth" onclick="applyPreset('growth')">Агрессивный рост</button>
+        </div>
+      </div>
+
+      <!-- Right Column: KPI cards & Comparison table -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <!-- Net Profit Card -->
+        <div class="wi-card-glow g-blue card-pad">
+          <div class="kpi-lbl">Сценарная чистая прибыль / мес</div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <span class="result-glow-val blue" id="proj-net">0 ₽</span>
+            <span class="delta-pill neutral" id="proj-net-delta">0%</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px" id="proj-net-sub">Базовая чистая прибыль: 99 431 ₽</div>
+        </div>
+
+        <!-- Margin & Break-even Cards side-by-side -->
+        <div class="row2">
+          <div class="wi-card-glow g-green card-pad">
+            <div class="kpi-lbl">Рентабельность</div>
+            <div class="result-glow-val green" id="proj-margin">0%</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px" id="proj-margin-sub">Базовая: 32.4%</div>
+          </div>
+          
+          <div class="wi-card-glow g-gold card-pad">
+            <div class="kpi-lbl">Точка безубыточности</div>
+            <div class="result-glow-val gold" id="proj-be">0 ₽</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px" id="proj-be-sub">Запас прочности: +0%</div>
+          </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:12px">Сравнение P&amp;L статей</div>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Статья P&amp;L</th>
+                <th class="r">Базовый месяц</th>
+                <th class="r">Сценарий</th>
+                <th class="r">Отклонение</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Выручка</strong></td>
+                <td class="r" id="tbl-base-rev">0 ₽</td>
+                <td class="r" id="tbl-scen-rev" style="font-weight:600">0 ₽</td>
+                <td class="r" id="tbl-diff-rev">0 ₽</td>
+              </tr>
+              <tr>
+                <td><strong>Себестоимость (COGS)</strong></td>
+                <td class="r" id="tbl-base-cogs">0 ₽</td>
+                <td class="r" id="tbl-scen-cogs" style="color:var(--red)">0 ₽</td>
+                <td class="r" id="tbl-diff-cogs">0 ₽</td>
+              </tr>
+              <tr>
+                <td><strong>Валовая прибыль</strong></td>
+                <td class="r" id="tbl-base-gross">0 ₽</td>
+                <td class="r" id="tbl-scen-gross" style="color:var(--green)">0 ₽</td>
+                <td class="r" id="tbl-diff-gross">0 ₽</td>
+              </tr>
+              <tr>
+                <td><strong>Зарплаты бариста (ФОТ)</strong></td>
+                <td class="r" id="tbl-base-payroll">0 ₽</td>
+                <td class="r" id="tbl-scen-payroll">0 ₽</td>
+                <td class="r" id="tbl-diff-payroll">0 ₽</td>
+              </tr>
+              <tr>
+                <td><strong>Аренда помещения</strong></td>
+                <td class="r" id="tbl-base-rent">0 ₽</td>
+                <td class="r" id="tbl-scen-rent">0 ₽</td>
+                <td class="r" id="tbl-diff-rent">0 ₽</td>
+              </tr>
+              <tr>
+                <td><strong>Прочие опер. расходы</strong></td>
+                <td class="r" id="tbl-base-other-opex">0 ₽</td>
+                <td class="r" id="tbl-scen-other-opex">0 ₽</td>
+                <td class="r" id="tbl-diff-other-opex">0 ₽</td>
+              </tr>
+              <tr style="border-top:2px solid var(--border)">
+                <td><strong>ЧИСТАЯ ПРИБЫЛЬ</strong></td>
+                <td class="r" id="tbl-base-net" style="font-weight:600">0 ₽</td>
+                <td class="r" id="tbl-scen-net" style="font-weight:800;color:var(--blue)">0 ₽</td>
+                <td class="r" id="tbl-diff-net" style="font-weight:600">0 ₽</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- ══ PAGE: SALES ══ -->
   <div class="page" id="page-sales">
-    <div class="sec-h">Продажи <span class="src evo" style="font-size:12px;vertical-align:middle;margin-left:8px">эвотор API</span></div>
+    <div class="sec-h">Продажи <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
     <div class="sec-sub">Данные из receipts + receipt_items · 7 дней</div>
     <div class="card" style="margin-bottom:14px">
       <table class="tbl">
@@ -685,7 +886,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
   <!-- ══ PAGE: PRODUCTS ══ -->
   <div class="page" id="page-products">
-    <div class="sec-h">Товары <span class="src evo" style="font-size:12px;vertical-align:middle;margin-left:8px">эвотор API</span></div>
+    <div class="sec-h">Товары <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
     <div class="sec-sub">Каталог из Эвотора · себестоимость вводится вручную · прибыль рассчитывается автоматически</div>
     <div class="connect-banner">
       <div class="cb-icon">⚠</div>
@@ -711,7 +912,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
   <!-- ══ PAGE: RETURNS ══ -->
   <div class="page" id="page-returns">
-    <div class="sec-h">Возвраты <span class="src evo" style="font-size:12px;vertical-align:middle;margin-left:8px">эвотор API</span></div>
+    <div class="sec-h">Возвраты <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
     <div class="sec-sub">4 возврата за 7 дней · 1 340₽ · 0.7% от выручки</div>
     <div class="card" style="margin-bottom:14px">
       <table class="tbl">
@@ -744,13 +945,13 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
       <div class="card card-pad">
         <div class="card-title" style="margin-bottom:16px">Ежемесячные расходы</div>
         <div class="exp-grid" id="exp-form">
-          <div class="exp-row"><div class="exp-label">Аренда</div><span class="src man">вручную</span><input class="exp-input" value="120 000" oninput="calcExpenses()"></div>
-          <div class="exp-row"><div class="exp-label">Зарплаты (ФОТ)</div><span class="src man">вручную</span><input class="exp-input" value="249 200" oninput="calcExpenses()"></div>
-          <div class="exp-row"><div class="exp-label">Коммуналка</div><span class="src man">вручную</span><input class="exp-input" value="18 000" oninput="calcExpenses()"></div>
-          <div class="exp-row"><div class="exp-label">Реклама</div><span class="src man">вручную</span><input class="exp-input" value="10 000" oninput="calcExpenses()"></div>
-          <div class="exp-row"><div class="exp-label">Налоги</div><span class="src calc">расчёт</span><input class="exp-input" value="45 500" readonly style="background:#f5f3ef;color:var(--muted)"></div>
-          <div class="exp-row"><div class="exp-label">Эквайринг</div><span class="src calc">расчёт</span><input class="exp-input" value="17 300" readonly style="background:#f5f3ef;color:var(--muted)"></div>
-          <div class="exp-row"><div class="exp-label">Прочее</div><span class="src man">вручную</span><input class="exp-input" value="15 000" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Аренда</div><span class="src man">вручную</span><input class="exp-input" value="84 530" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Зарплаты (ФОТ)</div><span class="src man">вручную</span><input class="exp-input" value="82 424" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Коммуналка</div><span class="src man">вручную</span><input class="exp-input" value="9 135" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Реклама</div><span class="src man">вручную</span><input class="exp-input" value="0" oninput="calcExpenses()"></div>
+          <div class="exp-row"><div class="exp-label">Налоги</div><span class="src calc">расчёт</span><input class="exp-input" value="5 977" readonly style="background:#f5f3ef;color:var(--muted)"></div>
+          <div class="exp-row"><div class="exp-label">Эквайринг</div><span class="src calc">расчёт</span><input class="exp-input" value="0" readonly style="background:#f5f3ef;color:var(--muted)"></div>
+          <div class="exp-row"><div class="exp-label">Прочее</div><span class="src man">вручную</span><input class="exp-input" value="0" oninput="calcExpenses()"></div>
         </div>
         <div class="exp-total-row">
           <div class="exp-total-lbl">Итого / мес</div>
@@ -778,7 +979,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
   <!-- ══ PAGE: COSTS ══ -->
   <div class="page" id="page-costs">
-    <div class="sec-h">Себестоимость <span class="src man" style="font-size:12px;vertical-align:middle;margin-left:8px">ручной ввод</span></div>
+    <div class="sec-h">Себестоимость <span class="src man" style="font-size:12px;vertical-align:middle;margin-left:8px">ручной ввод</span> <span class="demo-badge" style="margin-left:6px">цены — демо</span></div>
     <div class="sec-sub">Вводится один раз · при изменении закупочных цен обновляется · автоматически рассчитывает маржу по каждой позиции</div>
     <div class="card">
       <table class="tbl">
@@ -837,30 +1038,9 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
     <div class="sec-sub">Автоматическая рассылка каждое утро в 09:00 · на основе данных Эвотор + ручных расходов</div>
     <div class="row2">
       <div>
-        <div class="card-title" style="margin-bottom:10px">Предпросмотр сообщения · вчера</div>
+        <div class="card-title" style="margin-bottom:10px">Предпросмотр · Май 2026</div>
         <div class="tg-preview">
-          <div>☕ <span class="tg-name">Кофейня Дарвин</span></div>
-          <div class="tg-divider">──────────────</div>
-          <div><span class="tg-lbl">📅 Вчера, 9 июня</span></div>
-          <div>&nbsp;</div>
-          <div><span class="tg-lbl">💰 Выручка:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="tg-num">24 730 ₽</span></div>
-          <div><span class="tg-lbl">📊 Чеков:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="tg-num">92</span></div>
-          <div><span class="tg-lbl">🧾 Ср. чек:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="tg-num">268 ₽</span></div>
-          <div><span class="tg-lbl">↩️ Возвраты:&nbsp;&nbsp;&nbsp;</span><span style="color:#ff7070">0 ₽</span></div>
-          <div><span class="tg-lbl">🏷 Скидки:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#ffb347">0 ₽</span></div>
-          <div class="tg-divider">──────────────</div>
-          <div><span class="tg-lbl">📦 Себест.:&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#aaa">−7 220 ₽</span></div>
-          <div><span class="tg-lbl">💚 Вал. прибыль:</span><span class="tg-num">17 510 ₽ (70.8%)</span></div>
-          <div><span class="tg-lbl">💵 Расходы:&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#aaa">−15 600 ₽</span></div>
-          <div><span class="tg-lbl">✅ Чист. прибыль:</span><span class="tg-num">1 910 ₽</span></div>
-          <div class="tg-divider">──────────────</div>
-          <div><span class="tg-lbl">🏆 Топ-3 товара:</span></div>
-          <div>&nbsp;&nbsp;1. Капучино — <span class="tg-num">38 шт</span></div>
-          <div>&nbsp;&nbsp;2. Латте — <span class="tg-num">29 шт</span></div>
-          <div>&nbsp;&nbsp;3. Американо — <span class="tg-num">18 шт</span></div>
-          <div class="tg-divider">──────────────</div>
-          <div><span class="tg-warn">⚠ Прогноз июня: 134 700 ₽</span></div>
-          <div><span style="color:#8899aa;font-size:11px">данные: Эвотор API · 09:00</span></div>
+          ☕ <b>Дарвин</b> — Май 2026<br><i>Excel помесячно · честный P&L</i><br><br>Выручка: <b>306 497 ₽</b><br>Себестоимость: 25 000 ₽<br>Валовая прибыль: 281 497 ₽ (91.8%)<br>Опер. расходы: 182 066 ₽<br>Чистая прибыль: <b>99 431 ₽</b> (32.4%)
         </div>
         <div class="tg-btns">
           <button class="tg-btn active">Сегодня</button>
@@ -906,7 +1086,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
 <script>
 // ── NAV ──
-const titles = {overview:'Главная',pl:'P&L · Прибыль',sales:'Продажи',products:'Товары',returns:'Возвраты',expenses:'Расходы',costs:'Себестоимость',telegram:'Telegram-дайджест'};
+const titles = {overview:'Главная',pl:'P&L · Прибыль',whatif:'Анализ «Что-Если»',sales:'Продажи',products:'Товары',returns:'Возвраты',expenses:'Расходы',costs:'Себестоимость',telegram:'Telegram-дайджест'};
 function nav(id, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -914,21 +1094,206 @@ function nav(id, el) {
   if(el) el.classList.add('active');
   document.getElementById('tb-title').textContent = titles[id]||id;
   window.scrollTo(0,0);
+  if (id === 'whatif') {
+    updateScenario();
+  }
 }
-function setPer(btn){ document.querySelectorAll('.tb-period button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+
+// ── WHAT IF SCENARIO MODELING ──
+const baseData = {"revenue": 306497.0, "cogs": 25000.0, "expenses": {"RENT": 84530.0, "UTILITIES": 9135.0, "PAYROLL": 82424.0, "TAXES": 5977.0, "MARKETING": 0.0, "ACQUIRING": 0.0, "SOFTWARE": 0.0, "COMMS_SECURITY": 0.0, "OTHER": 0.0, "DEPRECIATION": 0.0}};
+
+function formatMoney(val) {
+  const rounded = Math.round(val);
+  const sign = rounded < 0 ? '-' : '';
+  return sign + Math.abs(rounded).toLocaleString('ru') + ' ₽';
+}
+
+function updateScenario() {
+  const traffic = parseFloat(document.getElementById('slide-traffic').value);
+  const price = parseFloat(document.getElementById('slide-price').value);
+  const cogs = parseFloat(document.getElementById('slide-cogs').value);
+  const rent = parseFloat(document.getElementById('slide-rent').value);
+  const payroll = parseFloat(document.getElementById('slide-payroll').value);
+
+  // Update slider label texts
+  document.getElementById('val-traffic').textContent = (traffic >= 0 ? '+' : '') + traffic + '%';
+  document.getElementById('val-price').textContent = (price >= 0 ? '+' : '') + price + '%';
+  document.getElementById('val-cogs').textContent = (cogs >= 0 ? '+' : '') + cogs + '%';
+  document.getElementById('val-rent').textContent = (rent >= 0 ? '+' : '') + rent + '%';
+  document.getElementById('val-payroll').textContent = (payroll >= 0 ? '+' : '') + payroll + '%';
+
+  // Toggle slider val label colors
+  const toggleValColor = (id, val) => {
+    const el = document.getElementById(id);
+    el.className = 'slider-val' + (val > 0 ? ' pos' : val < 0 ? ' neg' : '');
+  };
+  toggleValColor('val-traffic', traffic);
+  toggleValColor('val-price', price);
+  toggleValColor('val-cogs', cogs);
+  toggleValColor('val-rent', rent);
+  toggleValColor('val-payroll', payroll);
+
+  // Math factors
+  const trafficFactor = (100 + traffic) / 100;
+  const priceFactor = (100 + price) / 100;
+  const cogsFactor = (100 + cogs) / 100;
+  const rentFactor = (100 + rent) / 100;
+  const payrollFactor = (100 + payroll) / 100;
+
+  // Baseline variables
+  const baseRevenue = baseData.revenue;
+  const baseCogs = baseData.cogs;
+  const baseRent = baseData.expenses.RENT || 0;
+  const basePayroll = baseData.expenses.PAYROLL || 0;
+  const baseAcq = baseData.expenses.ACQUIRING || 0;
+  
+  let baseOtherOpex = 0;
+  for (let key in baseData.expenses) {
+    if (key !== 'RENT' && key !== 'PAYROLL' && key !== 'ACQUIRING') {
+      baseOtherOpex += baseData.expenses[key];
+    }
+  }
+  const baseOpex = baseRent + basePayroll + baseAcq + baseOtherOpex;
+  const baseGross = baseRevenue - baseCogs;
+  const baseNet = baseGross - baseOpex;
+  const baseMargin = baseRevenue > 0 ? (baseNet / baseRevenue * 100) : 0;
+
+  // Scenario variables
+  const scenRevenue = baseRevenue * trafficFactor * priceFactor;
+  const scenCogs = baseCogs * trafficFactor * cogsFactor;
+  const scenGross = scenRevenue - scenCogs;
+  
+  const scenRent = baseRent * rentFactor;
+  const scenPayroll = basePayroll * payrollFactor;
+  const scenAcq = baseAcq ? (scenRevenue * (baseAcq / baseRevenue)) : 0;
+  const scenOtherOpex = baseOtherOpex; // other expenses fixed
+  
+  const scenOpex = scenRent + scenPayroll + scenAcq + scenOtherOpex;
+  const scenNet = scenGross - scenOpex;
+  const scenMargin = scenRevenue > 0 ? (scenNet / scenRevenue * 100) : 0;
+
+  // Profit Card Update
+  document.getElementById('proj-net').textContent = formatMoney(scenNet);
+  const netEl = document.getElementById('proj-net');
+  netEl.className = 'result-glow-val ' + (scenNet >= 0 ? 'blue' : 'red');
+  
+  // Profit delta pill
+  const netDiff = scenNet - baseNet;
+  const netDiffPct = baseNet !== 0 ? (netDiff / Math.abs(baseNet) * 100) : 0;
+  const deltaLabel = document.getElementById('proj-net-delta');
+  deltaLabel.textContent = (netDiff >= 0 ? '+' : '') + netDiff.toLocaleString('ru', {maximumFractionDigits:0}) + ' ₽ (' + (netDiffPct >= 0 ? '+' : '') + netDiffPct.toFixed(1) + '%)';
+  deltaLabel.className = 'delta-pill ' + (netDiff > 0 ? 'up' : netDiff < 0 ? 'down' : 'neutral');
+
+  // Margin Card Update
+  document.getElementById('proj-margin').textContent = scenMargin.toFixed(1) + '%';
+  const marginDiff = scenMargin - baseMargin;
+  document.getElementById('proj-margin-sub').innerHTML = 'Базовая: ' + baseMargin.toFixed(1) + '% (' + (marginDiff >= 0 ? '+' : '') + marginDiff.toFixed(1) + ' п.п.)';
+  
+  // Break-even Card Update
+  const scenContribution = scenRevenue - scenCogs;
+  const cmRatio = scenRevenue > 0 ? (scenContribution / scenRevenue) : 0;
+  const scenBeRevenue = cmRatio > 0 ? (scenOpex / cmRatio) : 0;
+  document.getElementById('proj-be').textContent = formatMoney(scenBeRevenue);
+  
+  const beTrafficFactor = scenContribution > 0 ? (scenOpex / scenContribution) : 0;
+  const safetyMargin = (1 - beTrafficFactor) * 100;
+  document.getElementById('proj-be-sub').innerHTML = beTrafficFactor > 0 && scenContribution > 0 ? 
+    ('Запас прочности: ' + (safetyMargin >= 0 ? '+' : '') + safetyMargin.toFixed(1) + '% по трафику') : 
+    '<span style="color:var(--red)">Безубыточность недостижима</span>';
+  
+  // Comparison Table Update
+  const setTblRow = (idBase, idScen, idDiff, baseVal, scenVal, isExpense=false) => {
+    document.getElementById(idBase).textContent = formatMoney(baseVal);
+    document.getElementById(idScen).textContent = formatMoney(scenVal);
+    
+    const diff = scenVal - baseVal;
+    const diffEl = document.getElementById(idDiff);
+    diffEl.textContent = (diff >= 0 ? '+' : '') + formatMoney(diff);
+    
+    // Set colors based on whether it is a good or bad change
+    if (diff === 0) {
+      diffEl.className = 'r v-muted';
+    } else {
+      const isGood = isExpense ? (diff < 0) : (diff > 0);
+      diffEl.className = 'r ' + (isGood ? 'v-pos' : 'v-neg');
+    }
+  };
+
+  setTblRow('tbl-base-rev', 'tbl-scen-rev', 'tbl-diff-rev', baseRevenue, scenRevenue);
+  setTblRow('tbl-base-cogs', 'tbl-scen-cogs', 'tbl-diff-cogs', baseCogs, scenCogs, true);
+  setTblRow('tbl-base-gross', 'tbl-scen-gross', 'tbl-diff-gross', baseGross, scenGross);
+  setTblRow('tbl-base-payroll', 'tbl-scen-payroll', 'tbl-diff-payroll', basePayroll, scenPayroll, true);
+  setTblRow('tbl-base-rent', 'tbl-scen-rent', 'tbl-diff-rent', baseRent, scenRent, true);
+  setTblRow('tbl-base-other-opex', 'tbl-scen-other-opex', 'tbl-diff-other-opex', baseAcq + baseOtherOpex, scenAcq + baseOtherOpex, true);
+  setTblRow('tbl-base-net', 'tbl-scen-net', 'tbl-diff-net', baseNet, scenNet);
+}
+
+function applyPreset(preset) {
+  // Update active button state
+  document.querySelectorAll('.presets-container .preset-btn').forEach(btn => btn.classList.remove('active'));
+  
+  let traffic = 0, price = 0, cogs = 0, rent = 0, payroll = 0;
+  
+  if (preset === 'cogs-crisis') {
+    document.getElementById('preset-cogs-crisis').classList.add('active');
+    traffic = -10; price = 0; cogs = 30; rent = 0; payroll = 0;
+  } else if (preset === 'optimization') {
+    document.getElementById('preset-optimization').classList.add('active');
+    traffic = 0; price = 10; cogs = 0; rent = -10; payroll = 0;
+  } else if (preset === 'growth') {
+    document.getElementById('preset-growth').classList.add('active');
+    traffic = 25; price = 5; cogs = 0; rent = 0; payroll = 15;
+  } else {
+    document.getElementById('preset-reset').classList.add('active');
+  }
+
+  document.getElementById('slide-traffic').value = traffic;
+  document.getElementById('slide-price').value = price;
+  document.getElementById('slide-cogs').value = cogs;
+  document.getElementById('slide-rent').value = rent;
+  document.getElementById('slide-payroll').value = payroll;
+
+  updateScenario();
+}
+function setPer(btn, period) {
+  window.location.search = '?period=' + period;
+}
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const period = params.get('period') || '7д';
+  document.querySelectorAll('.tb-period button').forEach(b => {
+    b.classList.remove('active');
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + period + "'")) {
+      b.classList.add('active');
+    }
+  });
+  if (period.includes('_')) {
+    const btn = document.getElementById('btn-custom-per');
+    if (btn) btn.classList.add('active');
+  }
+})();
+function applyCustomDates() {
+  const f = document.getElementById('date-from').value;
+  const t = document.getElementById('date-to').value;
+  if (f && t) {
+      window.location.search = '?period=' + f + '_' + t;
+  } else {
+      alert("Пожалуйста, выберите обе даты");
+  }
+}
 
 // ── HOURLY CHART ──
 (function(){
-  const vals = [0,0,0,12,22,38,48,42,18,14,12,16,14,12,8,6,4,0,0,0,0,0,0,0];
+  const vals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1560, 840, 0, 0, 530, 330, 0, 0, 0, 0, 220, 0, 0];
   const labels = ['0','','','','','','6','','','','','','12','','','','','','18','','','','','0'];
-  const max = Math.max(...vals);
+  const max = Math.max(...vals, 1);
   const bars = document.getElementById('hchart');
   const lbls = document.getElementById('hchart-labels');
   vals.forEach((v,i)=>{
     const b = document.createElement('div');
     b.className = 'hbar' + (v===max?' peak':'') + (v===0?' low':'');
     b.style.height = Math.max(2,(v/max)*74)+'px';
-    b.title = `${String(i).padStart(2,'0')}:00 — ${v}%`;
+    b.title = `${String(i).padStart(2,'0')}:00 — ${v} ₽`;
     bars.appendChild(b);
     const l = document.createElement('span');
     l.textContent = labels[i];
@@ -939,18 +1304,15 @@ function setPer(btn){ document.querySelectorAll('.tb-period button').forEach(b=>
 // ── EXPENSES ──
 function parseNum(s){ return parseInt(String(s).replace(/\s/g,''))||0; }
 function calcExpenses(){
-  const inputs = document.querySelectorAll('#exp-form .exp-input:not([readonly])');
+  const inputs = document.querySelectorAll('#exp-form .exp-input');
   let total = 0;
   inputs.forEach(i=>total+=parseNum(i.value));
-  // add calculated
-  total += 45500 + 17300; // налоги + эквайринг
   document.getElementById('exp-total').textContent = total.toLocaleString('ru')+'₽';
   document.getElementById('breakeven').textContent = Math.round(total/0.668).toLocaleString('ru')+'₽';
   // chart
   const labels2 = ['Аренда','ФОТ','Коммуналка','Реклама','Налоги','Эквайринг','Прочее'];
   const vals2 = [];
   inputs.forEach(i=>vals2.push(parseNum(i.value)));
-  vals2.push(45500,17300);
   const maxV = Math.max(...vals2);
   const chart = document.getElementById('exp-chart');
   chart.innerHTML = '';
