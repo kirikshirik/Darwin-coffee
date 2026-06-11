@@ -34,7 +34,11 @@ async def _dashboard(request: web.Request) -> web.Response:
         return web.Response(status=403, text="Доступ запрещён: неверный или отсутствует ключ.")
     try:
         # SystemExit ловим явно: build_html → render() так сигналит о незаполненном шаблоне.
-        html = await asyncio.to_thread(dashboard.build_html)
+        # Таймаут 10сек — если дольше, значит что-то завис (N+1 запросы, медленная Neon, etc)
+        html = await asyncio.wait_for(asyncio.to_thread(dashboard.build_html), timeout=10)
+    except asyncio.TimeoutError:
+        log.warning("ops-панель собиралась >10сек (завис?); вероятно медленные DB-запросы или Neon холодный старт")
+        return web.Response(status=503, text="Сервис перегружен: сборка панели заняла >10сек. Повторите запрос через минуту.")
     except (Exception, SystemExit):
         log.exception("Не удалось собрать ops-панель для веба")
         return web.Response(status=500, text="Не удалось собрать панель — смотри логи.")
