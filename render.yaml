@@ -23,6 +23,8 @@ services:
         sync: false
       - key: DATABASE_URL            # строка подключения Neon Postgres
         sync: false
+      - key: DASHBOARD_TOKEN         # секрет для /dashboard?key=… (пусто = маршрут выключен)
+        sync: false
       # --- настройки (можно держать в git) ---
       - key: EVOTOR_SYNC_INTERVAL_MIN  # синк в процессе бота каждые N мин (только при наличии токена)
         value: "15"

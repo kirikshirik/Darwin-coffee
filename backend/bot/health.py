@@ -1,18 +1,23 @@
-"""Минимальный HTTP health-сервер — для PaaS вроде Render.
+"""HTTP-сервер сервиса: health-проверки + публикация ops-панели по секретной ссылке.
 
-Render (free web service) требует, чтобы процесс слушал порт из $PORT, иначе деплой
-считается неудачным, и усыпляет сервис после 15 мин без входящих запросов. Поэтому:
-  • поднимаем крошечный сервер, отвечающий 200 на «/» и «/healthz»;
-  • внешний пингер (UptimeRobot, бесплатно) дёргает «/healthz» каждые ~5 мин —
-    входящий трафик не даёт сервису заснуть, и бот-поллинг продолжает жить.
+1. health (/ и /healthz) — Render (free web service) требует слушать $PORT, иначе
+   деплой неуспешен, и усыпляет сервис без входящих запросов. UptimeRobot пингует
+   /healthz → бот-поллинг продолжает жить. На VPS PORT нет → сервер не поднимается.
 
-На VPS переменной PORT нет → сервер не поднимается, поведение не меняется (см. main.py).
+2. /dashboard — отдаёт СВЕЖУЮ ops-панель (тот же build_html, что у команды бота),
+   за секретным токеном DASHBOARD_TOKEN: ?key=<токен>. Данные финансовые, поэтому:
+   нет токена в env → маршрут выключен (404); неверный ключ → 403; ответу ставим
+   X-Robots-Tag: noindex, чтобы не попал в поисковики.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import os
 
 from aiohttp import web
+
+from backend import dashboard
 
 log = logging.getLogger(__name__)
 
@@ -21,14 +26,35 @@ async def _ok(_request: web.Request) -> web.Response:
     return web.Response(text="ok")
 
 
+async def _dashboard(request: web.Request) -> web.Response:
+    token = os.getenv("DASHBOARD_TOKEN", "").strip()
+    if not token:
+        return web.Response(status=404, text="Not found")
+    if request.query.get("key", "") != token:
+        return web.Response(status=403, text="Доступ запрещён: неверный или отсутствует ключ.")
+    try:
+        # SystemExit ловим явно: build_html → render() так сигналит о незаполненном шаблоне.
+        html = await asyncio.to_thread(dashboard.build_html)
+    except (Exception, SystemExit):
+        log.exception("Не удалось собрать ops-панель для веба")
+        return web.Response(status=500, text="Не удалось собрать панель — смотри логи.")
+    return web.Response(
+        text=html,
+        content_type="text/html",
+        headers={"X-Robots-Tag": "noindex, nofollow"},
+    )
+
+
 async def start_health_server(port: int) -> web.AppRunner:
-    """Поднять health-сервер на 0.0.0.0:port. Вернуть runner для остановки (cleanup)."""
+    """Поднять веб-сервер на 0.0.0.0:port. Вернуть runner для остановки (cleanup)."""
     app = web.Application()
     app.router.add_get("/", _ok)
     app.router.add_get("/healthz", _ok)
+    app.router.add_get("/dashboard", _dashboard)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    log.info("Health-сервер слушает 0.0.0.0:%d (/, /healthz)", port)
+    dash = "токен задан" if os.getenv("DASHBOARD_TOKEN", "").strip() else "выключен (нет DASHBOARD_TOKEN)"
+    log.info("Web-сервер слушает 0.0.0.0:%d (/, /healthz, /dashboard — %s)", port, dash)
     return runner
