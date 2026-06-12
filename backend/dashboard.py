@@ -458,6 +458,179 @@ def build_html(period_str: str = '7д') -> str:
     return render(compute(period_str))
 
 
+def _build_pl_json(month: dict, annual: dict, period: date) -> list[dict]:
+    rows = []
+    
+    def add_row(label, m_val, a_val, sign="", cls="", src="расчёт", indent=False, small=False, is_section=False):
+        def format_val(v):
+            if v is None: return None
+            if isinstance(v, str): return v
+            return f"{sign}{_money(abs(v))}₽"
+            
+        rows.append({
+            "label": label,
+            "monthVal": format_val(m_val),
+            "annualVal": format_val(a_val),
+            "src": src,
+            "cls": cls,
+            "indent": indent,
+            "small": small,
+            "isSection": is_section
+        })
+
+    add_row("Доходы", None, None, is_section=True)
+    add_row("Выручка", month["rev"], annual["rev"], cls="v-pos", src="вручную")
+    add_row("Возвраты", "н/д", "н/д", src="эвотор", cls="v-muted")
+    add_row("Скидки", "н/д", "н/д", src="эвотор", cls="v-muted")
+
+    add_row("Себестоимость", None, None, is_section=True)
+    add_row("Закупка товара (COGS)", month["cogs"], annual["cogs"], sign="−", cls="v-neg", src="вручную")
+    add_row("Валовая прибыль", month["gross"], annual["gross"], cls="v-pos subtotal", src="расчёт")
+    add_row("Маржа", f"{_pct(month['gross'], month['rev'])}%", f"{_pct(annual['gross'], annual['rev'])}%", src="", indent=True, small=True)
+
+    add_row("Операционные расходы", None, None, is_section=True)
+    for cat in OPEX_ORDER:
+        a = annual["operating"].get(cat)
+        if not a: continue
+        m = month["operating"].get(cat)
+        add_row(cat.value, m if m else None, a, sign="−", cls="v-neg", src="вручную")
+        
+    add_row("Итого расходов", month["opex"], annual["opex"], sign="−", cls="v-neg subtotal", src="расчёт")
+
+    add_row("ЧИСТАЯ ПРИБЫЛЬ", month["net"], annual["net"], cls="v-gold total", src="расчёт")
+    add_row("Чистая маржа", f"{_pct(month['net'], month['rev'])}%", f"{_pct(annual['net'], annual['rev'])}%", src="", indent=True, small=True)
+    
+    return rows
+
+def compute_json(period_str: str = '7д') -> dict:
+    """Возвращает сырые данные для рендеринга на клиенте (React)."""
+    period = metrics.latest_month_period()
+    month = _month_pl(period)
+    annual = _annual_pl()
+
+    fc = forecast.forecast_history()
+    evotor_on = bool(os.getenv("EVOTOR_CLOUD_TOKEN", "").strip())
+
+    # Get raw overview data
+    today = date.today()
+    end = datetime(today.year, today.month, today.day) + timedelta(days=1)
+    
+    if period_str == "сег":
+        start = end - timedelta(days=1)
+        prev_start = start - timedelta(days=1)
+        label_text = "сегодня"
+        days_count = 1
+    elif period_str == "вч":
+        end = end - timedelta(days=1)
+        start = end - timedelta(days=1)
+        prev_start = start - timedelta(days=1)
+        label_text = "вчера"
+        days_count = 1
+    elif period_str == "мес":
+        start = end - timedelta(days=30)
+        prev_start = start - timedelta(days=30)
+        label_text = "30 дней"
+        days_count = 30
+    elif "_" in period_str:
+        try:
+            parts = period_str.split("_")
+            start = datetime.strptime(parts[0], "%Y-%m-%d")
+            end_parsed = datetime.strptime(parts[1], "%Y-%m-%d")
+            end = end_parsed + timedelta(days=1)
+            days_count = (end - start).days
+            if days_count <= 0: days_count = 1
+            prev_start = start - timedelta(days=days_count)
+            label_text = f"{start.strftime('%d.%m')} - {end_parsed.strftime('%d.%m')}"
+        except Exception:
+            start = end - timedelta(days=7)
+            prev_start = start - timedelta(days=7)
+            label_text = "7 дней"
+            days_count = 7
+    else: # 7д
+        start = end - timedelta(days=7)
+        prev_start = start - timedelta(days=7)
+        label_text = "7 дней"
+        days_count = 7
+
+    with SessionLocal() as s:
+        biz = metrics.get_business_id(s)
+        cur = metrics.sales_aggregate(s, biz, start, end)
+        prev = metrics.sales_aggregate(s, biz, prev_start, start)
+        ins = insights_mod.compute(s, biz, today)
+        pay = s.execute(
+            select(Receipt.payment_type, func.count(), func.coalesce(func.sum(Receipt.total_sum), ZERO))
+            .where(Receipt.business_id == biz, Receipt.sold_at >= start, Receipt.sold_at < end)
+            .group_by(Receipt.payment_type)
+        ).all()
+        
+        start_of_month = datetime(today.year, today.month, 1)
+        june_rev = s.execute(
+            select(func.coalesce(func.sum(Receipt.total_sum), ZERO))
+            .where(Receipt.business_id == biz, Receipt.sold_at >= start_of_month)
+        ).scalar() or ZERO
+        
+        from backend.scenarios.whatif import break_even as calculate_be
+        prev_month_period = metrics.latest_month_period()
+        hm = metrics.honest_month(prev_month_period)
+        if hm:
+            expenses = {C.COGS: hm["cogs"], **hm["operating"]}
+            be_info = calculate_be(hm["revenue"], expenses)
+            be_target = be_info.break_even_revenue
+        else:
+            be_target = D("248423")
+
+    checks, revenue = cur['checks'], cur['revenue']
+    avg = revenue / checks if checks else ZERO
+    prev_avg = prev['revenue'] / prev['checks'] if prev['checks'] else ZERO
+    rev_cls, rev_txt = _delta(revenue, prev['revenue'])
+    avg_cls, avg_txt = _delta(avg, prev_avg)
+
+    progress_pct = float((june_rev / be_target * 100) if be_target else ZERO)
+    
+    top_rows_json = []
+    for t in ins.top_by_profit[:5]:
+        margin = (t.profit / t.revenue * 100) if t.revenue else ZERO
+        mcls = 'g' if margin >= 50 else ('o' if margin < 25 else '')
+        top_rows_json.append({
+            "name": t.name,
+            "qty": _r(t.qty),
+            "revenue": float(t.revenue),
+            "revenueFormatted": _money(t.revenue),
+            "profit": float(t.profit),
+            "profitFormatted": _money(t.profit),
+            "margin": _r(margin),
+            "marginClass": mcls
+        })
+
+    wow = ins.wow
+    wow_txt = 'нет сравнения' if not wow or wow.revenue_change_pct is None else f"{_r(wow.revenue_change_pct)}% к прошлой неделе"
+
+    return {
+        "periodLabel": f"{RU_MONTHS[period.month]} {period.year}",
+        "evotorStatus": "Эвотор подключён" if evotor_on else "Эвотор не подключён",
+        "evotorBadge": "API · онлайн" if evotor_on else "API · не подключён",
+        "grossProfit": _money(month["gross"]),
+        "grossMargin": _pct(month["gross"], month["rev"]),
+        "netProfit": _money(month["net"]),
+        "netMargin": _pct(month["net"], month["rev"]),
+        "forecastValue": _money(fc.projected_net) if fc else "—",
+        "forecastMonth": RU_MONTHS[fc.period.month] if fc else "—",
+        "overview": {
+            "wow": wow_txt,
+            "window": ins.window_label,
+            "label_text": label_text,
+        },
+        "kpis": {
+            "revenue": {"val": _money(revenue), "checks": checks, "cls": rev_cls, "txt": rev_txt},
+            "avgCheck": {"val": _money(avg), "cls": avg_cls, "txt": avg_txt},
+            "breakEven": {"target": _money(be_target), "accumulated": _money(june_rev), "pct": progress_pct, "monthLabel": RU_MONTHS[today.month].lower()}
+        },
+        "topRows": top_rows_json,
+        "plTable": _build_pl_json(month, annual, period),
+        # Keep html fragments as fallback just in case
+        "htmlFragments": compute(period_str)
+    }
+
 def main() -> None:
     values = compute()
     OUTPUT.write_text(render(values), encoding="utf-8")
@@ -467,7 +640,6 @@ def main() -> None:
     print(f"   Чистая прибыль:   {values['NP_VAL']} ₽ ({values['NP_MARGIN']}%)")
     print(f"   Прогноз ({values['FC_MONTH']}): {values['FC_VAL']} ₽")
     print(f"   Эвотор:           {values['EVOTOR_STATUS']}")
-
 
 if __name__ == "__main__":
     main()

@@ -60,7 +60,7 @@ async def on_start(message: Message) -> None:
 
 @router.message(Command("dashboard"))
 async def on_dashboard(message: Message) -> None:
-    """Прислать свежую ops-панель файлом. Только владельцам (там полный P&L)."""
+    """Прислать ссылку на Mini App (дашборд). Только владельцам."""
     owner_ids = _owner_chat_ids()
     if not owner_ids:
         await message.answer(
@@ -72,17 +72,34 @@ async def on_dashboard(message: Message) -> None:
         await message.answer("Команда доступна только владельцам.")
         return
 
-    await message.answer("Собираю панель…")
-    try:
-        # SystemExit ловим явно: build_html → render() так сигналит о незаполненном шаблоне.
-        html = await asyncio.to_thread(dashboard.build_html)
-    except (Exception, SystemExit):
-        log.exception("Не удалось собрать ops-панель")
-        await message.answer("Не удалось собрать панель — смотри логи бота.")
+    webapp_url = os.getenv("WEBAPP_URL")
+    if not webapp_url:
+        render_url = os.getenv("RENDER_EXTERNAL_URL")
+        if render_url:
+            webapp_url = f"{render_url.rstrip('/')}/app"
+
+    if not webapp_url:
+        # Fallback to legacy HTML file approach if WEBAPP_URL is not configured
+        await message.answer("Собираю панель (старый формат)…")
+        try:
+            html = await asyncio.to_thread(dashboard.build_html)
+        except (Exception, SystemExit):
+            log.exception("Не удалось собрать ops-панель")
+            await message.answer("Не удалось собрать панель — смотри логи бота.")
+            return
+
+        file = BufferedInputFile(html.encode("utf-8"), filename="darwin_dashboard.html")
+        await message.answer_document(file, caption="Свежая ops-панель «Дарвин» — открой файл в браузере.")
         return
 
-    file = BufferedInputFile(html.encode("utf-8"), filename="darwin_dashboard.html")
-    await message.answer_document(file, caption="Свежая ops-панель «Дарвин» — открой файл в браузере.")
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from aiogram.types.web_app_info import WebAppInfo
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📊 Открыть Дашборд", web_app=WebAppInfo(url=webapp_url))]
+    ])
+    
+    await message.answer("Откройте интерактивную панель управления прямо в Telegram:", reply_markup=keyboard)
 
 
 @router.message(F.text == BTN_TODAY)
