@@ -98,17 +98,73 @@ async def _sync(request: web.Request) -> web.Response:
         log.exception("Ошибка при синхронизации")
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
+import urllib.parse
+import hmac
+import hashlib
+
+def validate_telegram_data(init_data: str, bot_token: str) -> bool:
+    if not init_data or not bot_token:
+        return False
+    try:
+        parsed = dict(urllib.parse.parse_qsl(init_data))
+        if 'hash' not in parsed:
+            return False
+        received_hash = parsed.pop('hash')
+        data_check = '\n'.join(f'{k}={v}' for k, v in sorted(parsed.items()))
+        secret = hmac.new(b'WebAppData', bot_token.encode(), hashlib.sha256).digest()
+        computed = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(computed, received_hash)
+    except Exception as e:
+        log.warning(f"Ошибка валидации auth data: {e}")
+        return False
+
+@web.middleware
+async def auth_middleware(request: web.Request, handler):
+    if request.path.startswith("/api/dashboard"):
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("tma "):
+            init_data = auth_header[4:]
+            bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+            if not validate_telegram_data(init_data, bot_token):
+                return web.json_response({"error": "Invalid authorization data"}, status=403)
+    return await handler(request)
+
+async def _api_dashboard(request: web.Request) -> web.Response:
+    period = request.query.get("period", "7д")
+    try:
+        data = dashboard.compute_json(period)
+        return web.json_response(data)
+    except Exception as e:
+        log.exception("Ошибка в /api/dashboard")
+        return web.json_response({"status": "error", "message": str(e)}, status=500)
+
 async def start_health_server(port: int) -> web.AppRunner:
     """Поднять веб-сервер на 0.0.0.0:port. Вернуть runner для остановки (cleanup)."""
-    app = web.Application()
+    app = web.Application(middlewares=[auth_middleware])
     app.router.add_get("/", _ok)
     app.router.add_get("/healthz", _ok)
     app.router.add_get("/dashboard", _dashboard)
+    app.router.add_get("/api/dashboard", _api_dashboard)
     app.router.add_post("/api/sync", _sync)
+    
+    # Serve React Frontend
+    import pathlib
+    ROOT_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
+    FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
+    if FRONTEND_DIST.exists():
+        app.router.add_static("/assets", FRONTEND_DIST / "assets")
+        for file in FRONTEND_DIST.iterdir():
+            if file.is_file() and file.name != "index.html":
+                app.router.add_route("GET", f"/{file.name}", lambda r, path=file: web.FileResponse(path))
+        
+        async def index_handler(request):
+            return web.FileResponse(FRONTEND_DIST / "index.html")
+        app.router.add_get("/app", index_handler)
+        
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     dash = "токен задан" if os.getenv("DASHBOARD_TOKEN", "").strip() else "выключен (нет DASHBOARD_TOKEN)"
-    log.info("Web-сервер слушает 0.0.0.0:%d (/, /healthz, /dashboard — %s)", port, dash)
+    log.info("Web-сервер слушает 0.0.0.0:%d (/, /healthz, /dashboard, /api/dashboard — %s)", port, dash)
     return runner
