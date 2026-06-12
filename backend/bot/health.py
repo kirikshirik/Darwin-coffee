@@ -151,20 +151,29 @@ async def start_health_server(port: int) -> web.AppRunner:
     import pathlib
     ROOT_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
     FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
+    frontend_available = False
     if FRONTEND_DIST.exists():
+        frontend_available = True
         app.router.add_static("/assets", FRONTEND_DIST / "assets")
+
+        # Serve static files (favicon, icons, etc)
         for file in FRONTEND_DIST.iterdir():
             if file.is_file() and file.name != "index.html":
-                app.router.add_route("GET", f"/{file.name}", lambda r, path=file: web.FileResponse(path))
-        
+                async def static_handler(request, path=file):
+                    return web.FileResponse(path)
+                app.router.add_get(f"/{file.name}", static_handler)
+
+        # Serve React app at /app (SPA — all routes go to index.html)
         async def index_handler(request):
             return web.FileResponse(FRONTEND_DIST / "index.html")
         app.router.add_get("/app", index_handler)
+        app.router.add_get("/app/{path_info:.*}", index_handler)
         
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     dash = "токен задан" if os.getenv("DASHBOARD_TOKEN", "").strip() else "выключен (нет DASHBOARD_TOKEN)"
-    log.info("Web-сервер слушает 0.0.0.0:%d (/, /healthz, /dashboard, /api/dashboard — %s)", port, dash)
+    frontend_status = "✓ React /app" if frontend_available else "(фронтенд не собран)"
+    log.info("Web-сервер слушает 0.0.0.0:%d (/, /healthz, /dashboard, /api/dashboard, %s) — %s", port, frontend_status, dash)
     return runner
