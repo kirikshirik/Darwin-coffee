@@ -10,7 +10,8 @@
       "Bash(.venv/bin/python -m pip install -q -r requirements.txt)",
       "Bash(.venv/bin/python -c \"import sqlalchemy; print\\('SQLAlchemy', sqlalchemy.__version__, 'установлен'\\)\")",
       "Bash(.venv/bin/python -m backend.seed)",
-      "Bash(.venv/bin/python -m backend.report_demo)"
+      "Bash(.venv/bin/python -m backend.report_demo)",
+      "Bash(.venv/bin/python -m backend.dashboard)"
     ]
   }
 }

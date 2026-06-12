@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем весь бэкенд и корневые конфиги
 COPY backend ./backend
 COPY *.py ./
-COPY reference ./reference
+# reference/ в .gitignore — не копируем
 
 # Копируем собранный фронтенд из первого этапа
 COPY --from=frontend-builder /build/dist ./frontend/dist

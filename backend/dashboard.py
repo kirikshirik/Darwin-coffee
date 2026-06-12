@@ -317,9 +317,9 @@ def _overview(period_str: str = "7d") -> dict:
     )
 
     kpis = (
-        _kpi('k-rev', 'Выручка', f"{_money(revenue)}₽", 'gold', rev_cls, rev_txt, f"{label_text} · {checks} чеков")
+        be_html
+        + _kpi('k-rev', 'Выручка', f"{_money(revenue)}₽", 'gold', rev_cls, rev_txt, f"{label_text} · {checks} чеков")
         + _kpi('k-chk', 'Средний чек', f"{_money(avg)}₽", '', avg_cls, avg_txt, f"{checks} чеков за {label_text}")
-        + be_html
     )
 
     rows = []
@@ -621,9 +621,9 @@ def compute_json(period_str: str = '7д') -> dict:
             "label_text": label_text,
         },
         "kpis": {
+            "breakEven": {"target": _money(be_target), "accumulated": _money(june_rev), "pct": progress_pct, "monthLabel": RU_MONTHS[today.month].lower()},
             "revenue": {"val": _money(revenue), "checks": checks, "cls": rev_cls, "txt": rev_txt},
             "avgCheck": {"val": _money(avg), "cls": avg_cls, "txt": avg_txt},
-            "breakEven": {"target": _money(be_target), "accumulated": _money(june_rev), "pct": progress_pct, "monthLabel": RU_MONTHS[today.month].lower()}
         },
         "topRows": top_rows_json,
         "plTable": _build_pl_json(month, annual, period),

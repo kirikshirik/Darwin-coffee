@@ -251,24 +251,6 @@ export default function App() {
                   Чеки и Выручка
                 </h2>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-zinc-900/80 rounded-3xl p-4 border border-zinc-800/50 flex flex-col">
-                    <div className="text-[11px] uppercase tracking-wider font-semibold text-zinc-500">Выручка</div>
-                    <div className="text-xl font-bold my-1.5 text-amber-400">{data.kpis.revenue.val}</div>
-                    <div className={cn("text-[11px] font-medium", data.kpis.revenue.cls === 'up' ? 'text-emerald-500' : 'text-rose-500')}>
-                      {data.kpis.revenue.txt}
-                    </div>
-                    <div className="text-[10px] text-zinc-600 mt-1.5">{data.overview.label_text} · {data.kpis.revenue.checks} чеков</div>
-                  </div>
-                  
-                  <div className="bg-zinc-900/80 rounded-3xl p-4 border border-zinc-800/50 flex flex-col">
-                    <div className="text-[11px] uppercase tracking-wider font-semibold text-zinc-500">Средний чек</div>
-                    <div className="text-xl font-bold my-1.5 text-white">{data.kpis.avgCheck.val}</div>
-                    <div className={cn("text-[11px] font-medium", data.kpis.avgCheck.cls === 'up' ? 'text-emerald-500' : 'text-rose-500')}>
-                      {data.kpis.avgCheck.txt}
-                    </div>
-                    <div className="text-[10px] text-zinc-600 mt-1.5">{data.kpis.revenue.checks} чеков за {data.overview.label_text}</div>
-                  </div>
-
                   <div className="col-span-2 bg-zinc-900/80 rounded-3xl p-4 border border-zinc-800/50 flex flex-col min-h-[106px] justify-between">
                     <div className="flex justify-between items-start w-full">
                       <div>
@@ -304,6 +286,24 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="bg-zinc-900/80 rounded-3xl p-4 border border-zinc-800/50 flex flex-col">
+                    <div className="text-[11px] uppercase tracking-wider font-semibold text-zinc-500">Выручка</div>
+                    <div className="text-xl font-bold my-1.5 text-amber-400">{data.kpis.revenue.val}</div>
+                    <div className={cn("text-[11px] font-medium", data.kpis.revenue.cls === 'up' ? 'text-emerald-500' : 'text-rose-500')}>
+                      {data.kpis.revenue.txt}
+                    </div>
+                    <div className="text-[10px] text-zinc-600 mt-1.5">{data.overview.label_text} · {data.kpis.revenue.checks} чеков</div>
+                  </div>
+
+                  <div className="bg-zinc-900/80 rounded-3xl p-4 border border-zinc-800/50 flex flex-col">
+                    <div className="text-[11px] uppercase tracking-wider font-semibold text-zinc-500">Средний чек</div>
+                    <div className="text-xl font-bold my-1.5 text-white">{data.kpis.avgCheck.val}</div>
+                    <div className={cn("text-[11px] font-medium", data.kpis.avgCheck.cls === 'up' ? 'text-emerald-500' : 'text-rose-500')}>
+                      {data.kpis.avgCheck.txt}
+                    </div>
+                    <div className="text-[10px] text-zinc-600 mt-1.5">{data.kpis.revenue.checks} чеков за {data.overview.label_text}</div>
                   </div>
                 </div>
               </div>
