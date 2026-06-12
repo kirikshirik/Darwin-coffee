@@ -89,7 +89,7 @@ export default function App() {
     setError(null);
     try {
       const initData = webapp?.initData || '';
-      const response = await fetch(`/api/dashboard?period=${p}`, {
+      const response = await fetch(`/api/dashboard?period=${encodeURIComponent(p)}`, {
         headers: {
           'Authorization': `tma ${initData}`,
         }
