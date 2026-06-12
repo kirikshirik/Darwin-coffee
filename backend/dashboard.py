@@ -251,16 +251,75 @@ def _overview(period_str: str = "7d") -> dict:
             .group_by(func.extract('hour', Receipt.sold_at))
         ).all()
 
+        # Calculate current month's cumulative revenue
+        start_of_month = datetime(today.year, today.month, 1)
+        june_rev = s.execute(
+            select(func.coalesce(func.sum(Receipt.total_sum), ZERO))
+            .where(Receipt.business_id == biz, Receipt.sold_at >= start_of_month)
+        ).scalar() or ZERO
+
+        # Calculate break-even target using the latest closed month's data
+        from backend.scenarios.whatif import break_even as calculate_be
+        prev_month_period = metrics.latest_month_period()
+        hm = metrics.honest_month(prev_month_period)
+        if hm:
+            expenses = {C.COGS: hm["cogs"], **hm["operating"]}
+            be_info = calculate_be(hm["revenue"], expenses)
+            be_target = be_info.break_even_revenue
+        else:
+            be_target = D("248423")  # Fallback
+
     checks, revenue = cur['checks'], cur['revenue']
     avg = revenue / checks if checks else ZERO
     prev_avg = prev['revenue'] / prev['checks'] if prev['checks'] else ZERO
     rev_cls, rev_txt = _delta(revenue, prev['revenue'])
     avg_cls, avg_txt = _delta(avg, prev_avg)
 
+    progress_pct = (june_rev / be_target * 100) if be_target else ZERO
+    progress_pct_float = float(progress_pct)
+    progress_bar_pct = min(100.0, progress_pct_float)
+    
+    if june_rev >= be_target:
+        progress_color = "var(--green)"
+        remaining_text = '🎯 <span style="color:var(--green);font-weight:700">Цель достигнута!</span>'
+    else:
+        progress_color = "var(--blue)"
+        remaining_sum = be_target - june_rev
+        remaining_text = f'Осталось: <strong style="color:var(--ink)">{_money(remaining_sum)}₽</strong>'
+
+    month_label = f"Прогресс за {RU_MONTHS[today.month].lower()}"
+
+    be_html = (
+        f'<div class="kpi k-be" style="grid-column: span 2; display: flex; flex-direction: column; justify-content: space-between; min-height: 106px;">'
+        f'  <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">'
+        f'    <div>'
+        f'      <div class="kpi-lbl">Точка безубыточности</div>'
+        f'      <div class="kpi-val blue">{_money(be_target)}₽</div>'
+        f'    </div>'
+        f'    <div style="text-align: right;">'
+        f'      <div class="kpi-lbl" style="color:var(--muted)">{month_label}</div>'
+        f'      <div style="font-family:var(--D); font-size: 18px; font-weight: 800; color: {progress_color}; margin-top: 4px;">{progress_pct_float:.1f}%</div>'
+        f'    </div>'
+        f'  </div>'
+        f'  '
+        f'  <div style="margin-top: 10px; width: 100%;">'
+        f'    <div style="width: 100%; height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; position: relative;">'
+        f'      <div style="width: {progress_bar_pct}%; height: 100%; background: {progress_color}; border-radius: 4px; transition: width 0.3s ease;"></div>'
+        f'    </div>'
+        f'    '
+        f'    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 6px; color: var(--muted); font-weight: 500;">'
+        f'      <div>Накоплено: <strong style="color:var(--ink)">{_money(june_rev)}₽</strong></div>'
+        f'      <div>{remaining_text}</div>'
+        f'    </div>'
+        f'  </div>'
+        f'  <div class="kpi-src">расчёт</div>'
+        f'</div>'
+    )
+
     kpis = (
         _kpi('k-rev', 'Выручка', f"{_money(revenue)}₽", 'gold', rev_cls, rev_txt, f"{label_text} · {checks} чеков")
         + _kpi('k-chk', 'Средний чек', f"{_money(avg)}₽", '', avg_cls, avg_txt, f"{checks} чеков за {label_text}")
-        + _kpi_na('k-ret', 'Возвраты') + _kpi_na('k-dis', 'Скидки')
+        + be_html
     )
 
     rows = []
