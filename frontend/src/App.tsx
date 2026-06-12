@@ -17,6 +17,8 @@ interface KpiData {
   txt?: string;
   target?: string;
   accumulated?: string;
+  remaining?: string;
+  trafficBuffer?: number;
   pct?: number;
   monthLabel?: string;
 }
@@ -53,6 +55,12 @@ interface DashboardData {
   netMargin: string;
   forecastValue: string;
   forecastMonth: string;
+  forecastRange?: {
+    low: string;
+    high: string;
+    lastYear: string;
+  };
+  cogsIsProxy?: boolean;
   overview: {
     wow: string;
     window: string;
@@ -239,6 +247,11 @@ export default function App() {
                 <div>
                   <p className="text-[11px] text-amber-600/80 font-bold uppercase tracking-wider mb-0.5">Прогноз на {data.forecastMonth}</p>
                   <p className="text-lg font-bold text-amber-100">{data.forecastValue}₽</p>
+                  {data.forecastRange && (data.forecastRange.low !== '—' || data.forecastRange.high !== '—') && (
+                    <p className="text-[10px] text-amber-600/60 mt-1.5">
+                      диапазон: {data.forecastRange.low} — {data.forecastRange.high}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -275,16 +288,17 @@ export default function App() {
                       <div className="flex justify-between text-[11px] mt-2 font-medium">
                         <div className="text-zinc-400">Накоплено: <span className="text-zinc-200">{data.kpis.breakEven.accumulated}</span></div>
                         <div className="text-zinc-400">
-                          {(data.kpis.breakEven.pct || 0) >= 100 ? 
-                            <span className="text-emerald-500 font-bold">🎯 Цель достигнута!</span> : 
-                            <span>Осталось: <span className="text-zinc-200">
-                              {/* Quick calculation for display: target - accumulated. In real app, might want to pass this from backend directly */}
-                              {/* Using the logic: we show what backend gave us */}
-                              до точки
-                            </span></span>
+                          {(data.kpis.breakEven.pct || 0) >= 100 ?
+                            <span className="text-emerald-500 font-bold">🎯 Цель достигнута!</span> :
+                            <span>Осталось: <span className="text-zinc-200">{data.kpis.breakEven.remaining || '—'}</span></span>
                           }
                         </div>
                       </div>
+                      {data.kpis.breakEven.trafficBuffer !== undefined && (
+                        <div className="text-[10px] text-zinc-500 mt-1.5">
+                          Запас по трафику: {data.kpis.breakEven.trafficBuffer < 0 ? '−' : '+'}{Math.abs(data.kpis.breakEven.trafficBuffer).toFixed(1)}%
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -294,7 +308,14 @@ export default function App() {
                     <div className={cn("text-[11px] font-medium", data.kpis.revenue.cls === 'up' ? 'text-emerald-500' : 'text-rose-500')}>
                       {data.kpis.revenue.txt}
                     </div>
-                    <div className="text-[10px] text-zinc-600 mt-1.5">{data.overview.label_text} · {data.kpis.revenue.checks} чеков</div>
+                    <div className="text-[10px] text-zinc-600 mt-1">
+                      {data.overview.label_text} · {data.kpis.revenue.checks} чеков
+                    </div>
+                    {data.overview.wow && data.overview.wow !== 'нет сравнения' && (
+                      <div className="text-[10px] text-blue-400 mt-1.5 font-medium">
+                        WoW: {data.overview.wow}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-zinc-900/80 rounded-3xl p-4 border border-zinc-800/50 flex flex-col">

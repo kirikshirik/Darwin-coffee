@@ -511,6 +511,9 @@ def compute_json(period_str: str = '7д') -> dict:
     fc = forecast.forecast_history()
     evotor_on = bool(os.getenv("EVOTOR_CLOUD_TOKEN", "").strip())
 
+    be_info = None
+    cogs_is_proxy = False
+
     # Get raw overview data
     today = date.today()
     end = datetime(today.year, today.month, today.day) + timedelta(days=1)
@@ -562,13 +565,13 @@ def compute_json(period_str: str = '7д') -> dict:
             .where(Receipt.business_id == biz, Receipt.sold_at >= start, Receipt.sold_at < end)
             .group_by(Receipt.payment_type)
         ).all()
-        
+
         start_of_month = datetime(today.year, today.month, 1)
         june_rev = s.execute(
             select(func.coalesce(func.sum(Receipt.total_sum), ZERO))
             .where(Receipt.business_id == biz, Receipt.sold_at >= start_of_month)
         ).scalar() or ZERO
-        
+
         from backend.scenarios.whatif import break_even as calculate_be
         prev_month_period = metrics.latest_month_period()
         hm = metrics.honest_month(prev_month_period)
@@ -576,6 +579,7 @@ def compute_json(period_str: str = '7д') -> dict:
             expenses = {C.COGS: hm["cogs"], **hm["operating"]}
             be_info = calculate_be(hm["revenue"], expenses)
             be_target = be_info.break_even_revenue
+            cogs_is_proxy = hm.get("cogs_is_proxy", False)
         else:
             be_target = D("248423")
 
@@ -605,6 +609,14 @@ def compute_json(period_str: str = '7д') -> dict:
     wow = ins.wow
     wow_txt = 'нет сравнения' if not wow or wow.revenue_change_pct is None else f"{_r(wow.revenue_change_pct)}% к прошлой неделе"
 
+    remaining_sum = be_target - june_rev if be_target > june_rev else ZERO
+
+    forecast_vals = {
+        "low": _money(fc.low_net) if fc and fc.low_net else "—",
+        "high": _money(fc.high_net) if fc and fc.high_net else "—",
+        "lastYear": _money(fc.last_year_net) if fc and fc.last_year_net else "—",
+    }
+
     return {
         "periodLabel": f"{RU_MONTHS[period.month]} {period.year}",
         "evotorStatus": "Эвотор подключён" if evotor_on else "Эвотор не подключён",
@@ -615,13 +627,22 @@ def compute_json(period_str: str = '7д') -> dict:
         "netMargin": _pct(month["net"], month["rev"]),
         "forecastValue": _money(fc.projected_net) if fc else "—",
         "forecastMonth": RU_MONTHS[fc.period.month] if fc else "—",
+        "forecastRange": forecast_vals,
+        "cogsIsProxy": cogs_is_proxy,
         "overview": {
             "wow": wow_txt,
             "window": ins.window_label,
             "label_text": label_text,
         },
         "kpis": {
-            "breakEven": {"target": _money(be_target), "accumulated": _money(june_rev), "pct": progress_pct, "monthLabel": RU_MONTHS[today.month].lower()},
+            "breakEven": {
+                "target": _money(be_target),
+                "accumulated": _money(june_rev),
+                "remaining": _money(remaining_sum),
+                "trafficBuffer": be_info.break_even_traffic_pct if be_info else 0.0,
+                "pct": progress_pct,
+                "monthLabel": RU_MONTHS[today.month].lower()
+            },
             "revenue": {"val": _money(revenue), "checks": checks, "cls": rev_cls, "txt": rev_txt},
             "avgCheck": {"val": _money(avg), "cls": avg_cls, "txt": avg_txt},
         },
