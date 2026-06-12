@@ -132,8 +132,11 @@ async def auth_middleware(request: web.Request, handler):
 
 async def _api_dashboard(request: web.Request) -> web.Response:
     period = request.query.get("period", "7д")
+    auth = request.headers.get("Authorization", "(нет)")
+    log.info(f"/api/dashboard запрос: period={period}, auth={auth[:20] if auth != '(нет)' else '(нет)'}")
     try:
         data = dashboard.compute_json(period)
+        log.info(f"/api/dashboard OK: {len(str(data))} bytes")
         return web.json_response(data, headers={"Access-Control-Allow-Origin": "*"})
     except Exception as e:
         log.exception("Ошибка в /api/dashboard")
