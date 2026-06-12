@@ -2,7 +2,7 @@
 
 Лендинг для ПОКУПАТЕЛЯ бизнеса (одна страница-презентация). Берёт честный помесячный
 P&L из `backend.bot.metrics.honest_month` — тот же источник, что у Telegram-бота
-(годовой итог сверен с `backend.honest_report` = 391 520 ₽), — подставляет значения
+(годовой итог сверен с `backend.honest_report` = 334 651 ₽), — подставляет значения
 в шаблон `invest_landing.template.html` и пишет самодостаточный `invest_landing.html`.
 
 Внутренняя ops-панель — отдельный артефакт: `backend.dashboard` → `darwin_dashboard.html`.

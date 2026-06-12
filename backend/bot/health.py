@@ -14,12 +14,47 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
 
 from aiohttp import web
 
 from backend import dashboard
 
 log = logging.getLogger(__name__)
+
+# Фоновое автообновление «при открытии дашборда»: на Render free сервис засыпает в
+# простое → плановый синк (bot/scheduler.py) встаёт. Чтобы данные были свежими при
+# просмотре, дёргаем инкрементальный синк Эвотора фоном, если давно не синкали.
+# _last_sync=None → первый просмотр после сна/рестарта всегда триггерит синк.
+_last_sync: float | None = None
+_sync_lock = asyncio.Lock()
+
+
+async def _maybe_bg_sync() -> None:
+    """Fire-and-forget синк Эвотора, если данные устарели. Ответ дашборда не блокирует."""
+    global _last_sync
+    if not os.getenv("EVOTOR_CLOUD_TOKEN", "").strip():
+        return
+    try:
+        interval = int(os.getenv("EVOTOR_SYNC_INTERVAL_MIN", "15") or 15)
+    except ValueError:
+        interval = 15
+    if interval <= 0 or _sync_lock.locked():
+        return
+    if _last_sync is not None and time.monotonic() - _last_sync < interval * 60:
+        return
+    _last_sync = time.monotonic()
+
+    async def _run() -> None:
+        from backend.integrations.evotor import sync as evotor_sync
+        async with _sync_lock:
+            try:
+                await asyncio.to_thread(evotor_sync.sync, 3)
+                log.info("Фоновый синк Эвотора (при открытии дашборда) выполнен")
+            except Exception:
+                log.exception("Фоновый синк при открытии дашборда не прошёл")
+
+    asyncio.create_task(_run())
 
 
 async def _ok(_request: web.Request) -> web.Response:
@@ -32,6 +67,7 @@ async def _dashboard(request: web.Request) -> web.Response:
         return web.Response(status=404, text="Not found")
     if request.query.get("key", "") != token:
         return web.Response(status=403, text="Доступ запрещён: неверный или отсутствует ключ.")
+    await _maybe_bg_sync()  # автообновление данных Эвотора фоном — ответ не задерживает
     try:
         # SystemExit ловим явно: build_html → render() так сигналит о незаполненном шаблоне.
         # Таймаут 10сек — если дольше, значит что-то завис (N+1 запросы, медленная Neon, etc)

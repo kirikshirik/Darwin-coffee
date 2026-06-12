@@ -60,7 +60,8 @@ def main() -> None:
 
         act = actuals_data.ACTUALS.get(period)
         if act:
-            cogs = act["food_cost"]
+            # реальный food cost, но месяц с неполными закупками → реалистичная оценка
+            cogs, cogs_proxy = actuals_data.effective_food_cost(rev, act["food_cost"])
             payroll = act["payroll"]
             # операционка = всё из Excel, кроме зарплаты и «Прочего» (его заменил COGS)
             operating = sum(
@@ -69,7 +70,7 @@ def main() -> None:
             net = rev - cogs - operating - payroll
             tot_cogs_real += cogs
             cogs_real_rev += rev
-            src = "факт"
+            src = "факт (COGS-оценка, закупки неполные)" if cogs_proxy else "факт"
         else:
             # нет дневного отчёта (июн–сен): COGS-прокси = «Прочее» из Excel
             cogs = exp.get(C.OTHER, ZERO)

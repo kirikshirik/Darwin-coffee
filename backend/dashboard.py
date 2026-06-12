@@ -326,6 +326,13 @@ def compute(period_str: str = '7д') -> dict:
     evotor_on = bool(os.getenv("EVOTOR_CLOUD_TOKEN", "").strip())
 
     op = month["operating"]
+    # Бейдж «предварительно», если COGS месяца — оценка (закупки внесены не полностью):
+    # см. actuals_data.effective_food_cost. Не даём headline-прибыли выглядеть завышенной.
+    cogs_note = (
+        f'<span class="pill-warn" style="font-size:9px;font-weight:600;margin-left:6px;'
+        f'padding:1px 6px;border-radius:4px">предв. · закупки {RU_MONTHS[period.month].lower()} неполные</span>'
+        if month.get("cogs_is_proxy") else ""
+    )
     return {
         "PERIOD_LABEL": f"{RU_MONTHS[period.month]} {period.year}",
         "TODAY_LABEL": f"{date.today():%d.%m.%Y}",
@@ -338,6 +345,7 @@ def compute(period_str: str = '7д') -> dict:
         "GP_MARGIN": _pct(month["gross"], month["rev"]),
         "NP_VAL": _money(month["net"]),
         "NP_MARGIN": _pct(month["net"], month["rev"]),
+        "COGS_NOTE": cogs_note,
         "FC_VAL": _money(fc.projected_net) if fc else "—",
         "FC_MONTH": RU_MONTHS[fc.period.month] if fc else "—",
 

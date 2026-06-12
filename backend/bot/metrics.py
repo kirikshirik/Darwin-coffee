@@ -109,7 +109,8 @@ def honest_month(period: date) -> Optional[dict]:
     }
 
     if act:
-        cogs, cogs_is_proxy = act["food_cost"], False
+        # реальный food cost, но если месяц закрыт с неполными закупками — реалистичная оценка
+        cogs, cogs_is_proxy = actuals_data.effective_food_cost(rev, act["food_cost"])
         payroll = act["payroll"]
     else:
         extra = actuals_data.PAYROLL_EXTRA.get(period_key)

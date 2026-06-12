@@ -621,7 +621,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
       <div class="kpi k-np">
         <div class="kpi-lbl">Чистая прибыль</div>
         <div class="kpi-val blue">{{NP_VAL}}₽</div>
-        <div class="kpi-d up">Маржа: {{NP_MARGIN}}%</div>
+        <div class="kpi-d up">Маржа: {{NP_MARGIN}}%{{COGS_NOTE}}</div>
         <div class="kpi-sub">{{PERIOD_LABEL}} · после всех расходов</div>
         <div class="kpi-src">расчёт</div>
       </div>
@@ -759,7 +759,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
             <span class="result-glow-val blue" id="proj-net">0 ₽</span>
             <span class="delta-pill neutral" id="proj-net-delta">0%</span>
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px" id="proj-net-sub">Базовая чистая прибыль: {{NP_VAL}} ₽</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px" id="proj-net-sub">Базовая чистая прибыль: {{NP_VAL}} ₽{{COGS_NOTE}}</div>
         </div>
 
         <!-- Margin & Break-even Cards side-by-side -->
@@ -841,7 +841,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
   <!-- ══ PAGE: SALES ══ -->
   <div class="page" id="page-sales">
-    <div class="sec-h">Продажи <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
+    <div class="sec-h">Продажи <span class="demo-badge" style="margin-left:8px">демо</span></div>
     <div class="sec-sub">Данные из receipts + receipt_items · 7 дней</div>
     <div class="card" style="margin-bottom:14px">
       <table class="tbl">
@@ -864,7 +864,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
   <!-- ══ PAGE: PRODUCTS ══ -->
   <div class="page" id="page-products">
-    <div class="sec-h">Товары <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
+    <div class="sec-h">Товары <span class="demo-badge" style="margin-left:8px">демо</span></div>
     <div class="sec-sub">Каталог из Эвотора · себестоимость вводится вручную · прибыль рассчитывается автоматически</div>
     <div class="connect-banner">
       <div class="cb-icon">⚠</div>
@@ -890,7 +890,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
   <!-- ══ PAGE: RETURNS ══ -->
   <div class="page" id="page-returns">
-    <div class="sec-h">Возвраты <span class="demo-badge" style="margin-left:8px">демо · ждёт Эвотора</span></div>
+    <div class="sec-h">Возвраты <span class="demo-badge" style="margin-left:8px">демо</span></div>
     <div class="sec-sub">4 возврата за 7 дней · 1 340₽ · 0.7% от выручки</div>
     <div class="card" style="margin-bottom:14px">
       <table class="tbl">

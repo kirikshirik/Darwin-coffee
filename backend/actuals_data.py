@@ -94,3 +94,25 @@ def avg_food_cost() -> D:
     """
     total = sum((m["food_cost"] for m in ACTUALS.values()), D("0"))
     return (total / len(ACTUALS)).quantize(D("1"))
+
+
+# Порог «закупки за месяц внесены не полностью»: food cost ниже половины среднего
+# реального ratio считаем неполным. Свежий месяц закрывается с задержкой по накладным —
+# напр. май 2026: food_cost 25 000 = 8.2% выручки против среднего ~26.7% (выброс,
+# та же неполнота видна и в `darwin_data` — статья «Прочее» за май тоже ровно 25 000).
+INCOMPLETE_FACTOR = D("0.5")
+
+
+def effective_food_cost(revenue: D, food_cost: D) -> tuple[D, bool]:
+    """COGS для честного P&L: реальный food cost либо реалистичная оценка, если он неполон.
+
+    Возвращает (cogs, is_proxy). Если доля food cost в выручке аномально мала
+    (< INCOMPLETE_FACTOR от среднего ratio) — данные за месяц ещё не довнесены,
+    берём оценку `выручка × food_cost_ratio()` и помечаем прокси. Иначе — как есть.
+
+    Сырьё в `ACTUALS` не трогаем (verify_control остаётся валиден) — это только
+    интерпретация при сборке honest-отчёта (honest_report / bot.metrics.honest_month).
+    """
+    if revenue and (food_cost / revenue) < food_cost_ratio() * INCOMPLETE_FACTOR:
+        return (revenue * food_cost_ratio()).quantize(D("1")), True
+    return food_cost, False

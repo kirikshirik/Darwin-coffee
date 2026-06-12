@@ -42,15 +42,17 @@
 ### Г. Кнопка «Синхронизировать» и фоновый запуск Эвотора
 * В шаблоне добавлена отправка POST-запроса на `/api/sync` при клике на кнопку «Синхронизировать».
 * **Проблема конфликта Event Loop:** Запуск скрипта синхронизации `sync.sync()` напрямую в async-обработчике aiohttp вызывал `RuntimeError` из-за вложенного вызова `asyncio.run()` внутри синхронного кода интеграции.
-* **Решение:** В [backend/server.py](file:///Users/kirillus/Documents/Darwin-coffee/backend/server.py) и в прод-сервер [backend/bot/health.py](file:///Users/kirillus/Documents/Darwin-coffee/backend/bot/health.py) внедрен запуск синхронизации через асинхронный подпроцесс:
+* **Решение (прод):** в прод-сервере `backend/bot/health.py` синхронизация вынесена в рабочий
+  поток через `asyncio.to_thread(sync.sync)` — `sync.sync()` зовёт свой `asyncio.run()` уже в
+  отдельном потоке, без конфликта с event loop aiohttp:
   ```python
-  proc = await asyncio.create_subprocess_exec(
-      sys.executable, "-m", "backend.integrations.evotor.sync",
-      stdout=asyncio.subprocess.PIPE,
-      stderr=asyncio.subprocess.PIPE
-  )
+  await asyncio.to_thread(evotor_sync.sync, 3)
   ```
-  Это полностью изолирует выполнение синхронизации, исключает зависание веб-сервера и конфликты циклов событий.
+  Вариант через подпроцесс (`asyncio.create_subprocess_exec`) остался **только** в dev-сервере
+  `backend/server.py`, который на Render не запускается (`render.yaml` → `python -m backend.bot.main`).
+* **Автообновление:** при открытии `/dashboard` фоном (fire-and-forget) запускается инкрементальный
+  синк, если данные устарели (`_maybe_bg_sync` в `health.py`), в дополнение к плановому синку
+  каждые 15 мин (`bot/scheduler.py`) — данные свежи даже после сна Render free.
 
 ---
 
@@ -62,11 +64,11 @@
    ```
 2. Математика в JS-калькуляторе при ползунках в **0%** копейка-в-копейку воспроизводит реальные показатели мая 2026:
    * Выручка: `306 497 ₽`
-   * COGS (закупка): `25 000 ₽`
+   * COGS (закупка): `81 869 ₽` (оценка — сырые 25 000 ₽ за май внесены не полностью, гард `actuals_data.effective_food_cost`)
    * Аренда: `84 530 ₽`
    * ФОТ: `82 424 ₽`
-   * Чистая прибыль: `99 431 ₽` (маржа `32.4%`)
-   * Точка безубыточности: `198 565 ₽` (запас прочности `+35.2%` по трафику).
+   * Чистая прибыль: `42 562 ₽` (маржа `13.9%`)
+   * Точка безубыточности: `≈ 248 430 ₽` (запас прочности `≈ +18.9%` по трафику).
 3. Локальный сервер запускается без ошибок:
    ```bash
    .venv/bin/python -m backend.server
@@ -78,7 +80,7 @@
 ## 3. Статус деплоя на Render
 
 * Код с калькулятором успешно объединен с веткой `main` и запушен на GitHub:
-  `https://github.com/kirikshirik/Darwin-coffee.git` (коммит `6dc0957`).
+  `https://github.com/kirikshirik/Darwin-coffee.git` (актуальный HEAD веток `main` и `feat/dynamic-costing-and-scenarios`).
 * Render автоматически подхватывает пуши в `main` и запускает сборку согласно [render.yaml](file:///Users/kirillus/Documents/Darwin-coffee/render.yaml):
   * **Команда сборки:** `pip install -r requirements.txt`
   * **Команда старта:** `python -m backend.bot.main`
