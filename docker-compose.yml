@@ -1,0 +1,56 @@
+services:
+  darwin-coffee:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: darwin-coffee
+    ports:
+      - "8000:8000"
+    environment:
+      # Локальные настройки для развития
+      PORT: 8000
+      TELEGRAM_TZ: Europe/Moscow
+      TELEGRAM_REPORT_TIME: "09:00"
+      EVOTOR_TZ: Europe/Moscow
+      EVOTOR_SYNC_INTERVAL_MIN: "15"
+
+      # Локальная SQLite БД по умолчанию (remove if using Postgres)
+      # DATABASE_URL не задан → используется ./darwin.db
+
+      # ✅ Telegram бот (реальные токены)
+      TELEGRAM_BOT_TOKEN: "8516787277:AAFAVUcFQD9a2b1CkgwpsVhW43ae22HJIQE"
+      TELEGRAM_OWNER_CHAT_ID: "483262851,6726726002"
+
+      # ✅ Эвотор (реальный токен)
+      EVOTOR_CLOUD_TOKEN: "eb303f2b-b3a8-4669-a738-afb3d6877485"
+
+      # ✅ Дашборд
+      DASHBOARD_TOKEN: "26d4JUdiyevwBrZ6sWT6FV5nusEnGY7A"
+
+      # Mini App URL для Telegram
+      WEBAPP_URL: "http://localhost:8000/app"
+
+    volumes:
+      # Сохраняем SQLite БД между рестартами
+      - ./data:/app/data
+      - ./darwin.db:/app/darwin.db
+
+    # Перезагружаемся при сбое, но не бесконечно
+    restart: unless-stopped
+
+  # Опционально: Postgres вместо SQLite для ближе к production
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: darwin-postgres
+  #   environment:
+  #     POSTGRES_DB: darwin_coffee
+  #     POSTGRES_USER: darwin
+  #     POSTGRES_PASSWORD: localdev123
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   postgres_data:

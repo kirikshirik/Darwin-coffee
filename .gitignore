@@ -18,3 +18,6 @@ darwin.backup.db
 # сводки). Цифры из них уже перенесены в код (darwin_data/cost_reference/actuals_data).
 # Лежат локально для справки, но в общих коммитах не участвуют.
 /reference/
+
+# Docker локальная директория данных
+/data/
