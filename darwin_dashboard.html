@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- АВТОГЕНЕРАЦИЯ 2026-06-11 18:23 · backend/dashboard.py · реальный P&L + демо-панели Эвотора. Правь darwin_dashboard.template.html. -->
+<!-- АВТОГЕНЕРАЦИЯ 2026-06-11 19:12 · backend/dashboard.py · реальный P&L + демо-панели Эвотора. Правь darwin_dashboard.template.html. -->
 
 <html lang="ru" data-theme="light">
 <head>
@@ -608,7 +608,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
 
     <!-- KPI ROW 1: из Эвотора -->
     <div style="font-family:var(--D);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>Из Эвотора</span><div style="flex:1;height:1px;background:var(--border)"></div><span class="src evo">7 дней</span></div>
-    <div class="row4" style="margin-bottom:12px"><div class="kpi k-rev"><div class="kpi-lbl">Выручка</div><div class="kpi-val gold">3 480₽</div><div class="kpi-d up">↑ 192.4% к прошлой неделе</div><div class="kpi-sub">7 дней · 8 чеков</div><div class="kpi-src">эвотор</div></div><div class="kpi k-chk"><div class="kpi-lbl">Средний чек</div><div class="kpi-val">435₽</div><div class="kpi-d up">↑ 9.7% к прошлой неделе</div><div class="kpi-sub">8 чеков за 7 дней</div><div class="kpi-src">эвотор</div></div><div class="kpi k-ret"><div class="kpi-lbl">Возвраты</div><div class="kpi-val v-muted">—</div><div class="kpi-d">нет данных в Эвоторе</div><div class="kpi-sub">не синхронизируется</div><div class="kpi-src">эвотор</div></div><div class="kpi k-dis"><div class="kpi-lbl">Скидки</div><div class="kpi-val v-muted">—</div><div class="kpi-d">нет данных в Эвоторе</div><div class="kpi-sub">не синхронизируется</div><div class="kpi-src">эвотор</div></div></div>
+    <div class="row4" style="margin-bottom:12px"><div class="kpi k-rev"><div class="kpi-lbl">Выручка</div><div class="kpi-val gold">56 085₽</div><div class="kpi-d down">↓ 20.3% к прошлой неделе</div><div class="kpi-sub">7 дней · 133 чеков</div><div class="kpi-src">эвотор</div></div><div class="kpi k-chk"><div class="kpi-lbl">Средний чек</div><div class="kpi-val">422₽</div><div class="kpi-d up">↑ 14.5% к прошлой неделе</div><div class="kpi-sub">133 чеков за 7 дней</div><div class="kpi-src">эвотор</div></div><div class="kpi k-ret"><div class="kpi-lbl">Возвраты</div><div class="kpi-val v-muted">—</div><div class="kpi-d">нет данных в Эвоторе</div><div class="kpi-sub">не синхронизируется</div><div class="kpi-src">эвотор</div></div><div class="kpi k-dis"><div class="kpi-lbl">Скидки</div><div class="kpi-val v-muted">—</div><div class="kpi-d">нет данных в Эвоторе</div><div class="kpi-sub">не синхронизируется</div><div class="kpi-src">эвотор</div></div></div>
 
     <!-- KPI ROW 2: расчётные -->
     <div style="font-family:var(--D);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>Расчётные показатели</span><div style="flex:1;height:1px;background:var(--border)"></div><span class="src calc">расчёт</span></div>
@@ -645,7 +645,7 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
         <div style="padding:16px 20px 8px">
           <div class="hchart" id="hchart"></div>
           <div class="hchart-labels" id="hchart-labels"></div>
-          <div style="font-size:11px;color:var(--muted);margin-top:10px" id="hchart-note"><span style="color:var(--green);font-weight:600">11:00–12:00</span> → 45% выручки за 7 дней (пик)</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px" id="hchart-note"><span style="color:var(--green);font-weight:600">16:00–17:00</span> → 16% выручки за 7 дней (пик)</div>
         </div>
       </div>
 
@@ -657,9 +657,11 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
           <table class="tbl">
             <thead><tr><th>Товар</th><th class="r">Продано</th><th class="r">Выручка</th><th class="r">Прибыль</th><th class="r">Маржа</th></tr></thead>
             <tbody>
-              <tr><td><strong>Капучино 350</strong></td><td class="r">11</td><td class="r">2 420₽</td><td class="r v-pos">1 568₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:65%"></div></div><span style="font-size:11px;font-weight:600">65%</span></div></td></tr>
-<tr><td><strong>Латте 250</strong></td><td class="r">8</td><td class="r">1 600₽</td><td class="r v-pos">1 057₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:66%"></div></div><span style="font-size:11px;font-weight:600">66%</span></div></td></tr>
-<tr><td><strong>Круассан</strong></td><td class="r">5</td><td class="r">650₽</td><td class="r v-pos">425₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:65%"></div></div><span style="font-size:11px;font-weight:600">65%</span></div></td></tr>
+              <tr><td><strong>Капучино 0,3</strong></td><td class="r">45</td><td class="r">11 700₽</td><td class="r v-pos">8 575₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:73%"></div></div><span style="font-size:11px;font-weight:600">73%</span></div></td></tr>
+<tr><td><strong>Капучино 0,4</strong></td><td class="r">33</td><td class="r">10 230₽</td><td class="r v-pos">7 498₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:73%"></div></div><span style="font-size:11px;font-weight:600">73%</span></div></td></tr>
+<tr><td><strong>Флет вайт </strong></td><td class="r">42</td><td class="r">9 240₽</td><td class="r v-pos">6 772₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:73%"></div></div><span style="font-size:11px;font-weight:600">73%</span></div></td></tr>
+<tr><td><strong>Латте 0,3</strong></td><td class="r">32</td><td class="r">8 640₽</td><td class="r v-pos">6 332₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:73%"></div></div><span style="font-size:11px;font-weight:600">73%</span></div></td></tr>
+<tr><td><strong>Капучино 0,2</strong></td><td class="r">34</td><td class="r">7 480₽</td><td class="r v-pos">5 482₽</td><td class="r"><div class="mbar"><div class="mbar-bg"><div class="mbar-fill g" style="width:73%"></div></div><span style="font-size:11px;font-weight:600">73%</span></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -671,8 +673,9 @@ body { background:var(--bg); color:var(--ink); font-family:var(--S); font-weight
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div class="card-title">Способы оплаты</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--blue)">100%</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Карта / СБП</div><div style="font-size:12px;font-weight:500;margin-top:2px">3 480₽</div></div></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px">Эквайринг (карта/СБП): ~2.5% → <strong style="color:var(--red)">87₽/нед</strong> расход за 7 дней</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--blue)">95%</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Карта / СБП</div><div style="font-size:12px;font-weight:500;margin-top:2px">53 135₽</div></div>
+<div style="text-align:center;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-family:var(--D);font-size:22px;font-weight:800;color:var(--green)">5%</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Наличные</div><div style="font-size:12px;font-weight:500;margin-top:2px">2 950₽</div></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">Эквайринг (карта/СБП): ~2.5% → <strong style="color:var(--red)">1 328₽/нед</strong> расход за 7 дней</div>
     </div>
 
   </div><!-- /overview -->
@@ -1284,7 +1287,7 @@ function applyCustomDates() {
 
 // ── HOURLY CHART ──
 (function(){
-  const vals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1560, 840, 0, 0, 530, 330, 0, 0, 0, 0, 220, 0, 0];
+  const vals = [0, 0, 0, 0, 0, 0, 0, 0, 2780, 3255, 4915, 3795, 3100, 7635, 3040, 4465, 9100, 4080, 4040, 5170, 490, 220, 0, 0];
   const labels = ['0','','','','','','6','','','','','','12','','','','','','18','','','','','0'];
   const max = Math.max(...vals, 1);
   const bars = document.getElementById('hchart');
@@ -1343,10 +1346,24 @@ function syncNow(){
   const btn = document.querySelector('.sb-sync-btn');
   btn.textContent = '↺ Синхронизация...';
   btn.disabled = true;
-  setTimeout(()=>{
-    btn.textContent = '✓ Обновлено';
-    setTimeout(()=>{ btn.textContent='↺ Синхронизировать'; btn.disabled=false; },2000);
-  },1500);
+  
+  fetch('/api/sync' + window.location.search, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'ok'){
+        btn.textContent = '✓ Обновлено';
+        setTimeout(()=>{ window.location.reload(); }, 1000);
+      } else {
+        btn.textContent = '❌ Ошибка';
+        console.error(data.message);
+        setTimeout(()=>{ btn.textContent='↺ Синхронизировать'; btn.disabled=false; },2000);
+      }
+    })
+    .catch(err => {
+      btn.textContent = '❌ Ошибка';
+      console.error(err);
+      setTimeout(()=>{ btn.textContent='↺ Синхронизировать'; btn.disabled=false; },2000);
+    });
 }
 
 // ── SAVE EXP ──
