@@ -84,8 +84,8 @@
 * Render автоматически подхватывает пуши в `main` и запускает сборку согласно [render.yaml](file:///Users/kirillus/Documents/Darwin-coffee/render.yaml):
   * **Команда сборки:** `pip install -r requirements.txt`
   * **Команда старта:** `python -m backend.bot.main`
-* Живой дашборд доступен по ссылке:
-  [https://darwin-bot.onrender.com/dashboard?key=26d4JUdiyevwBrZ6sWT6FV5nusEnGY7A](https://darwin-bot.onrender.com/dashboard?key=26d4JUdiyevwBrZ6sWT6FV5nusEnGY7A)
+* Живой дашборд: `https://<хост>/dashboard?key=<DASHBOARD_TOKEN>` (токен — в env;
+  в доки не вписывать, репозиторий публичный).
 * **Статус:** Контейнер успешно обновлен и запущен. Новая вкладка «⚖ Анализ «Что-Если»» активна на проде, расчеты и переключение пресетов работают корректно.
 
 ---

@@ -50,7 +50,8 @@
   прибыльные часы, неделя-к-неделе, рейтинг бариста. Проверено: `python -m backend.analytics.demo`.
 - **Интерактивный сценарный калькулятор «Что-Если» (веб-панель):** полноценное моделирование
   влияния трафика, цен, аренды, ФОТ и удорожания сырья на чистую прибыль и безубыточность (break-even).
-  Работает клиент-сайд (без задержек), развернут на Render: [https://darwin-bot.onrender.com/dashboard](https://darwin-bot.onrender.com/dashboard?key=26d4JUdiyevwBrZ6sWT6FV5nusEnGY7A).
+  Работает клиент-сайд (без задержек): `https://<хост>/dashboard?key=<DASHBOARD_TOKEN>`
+  (токен — в env, в доки не вписывать: репозиторий публичный).
 - **Фоновый запуск синхронизации Эвотора (`POST /api/sync`):** вынесен в рабочий поток
   (`asyncio.to_thread`) — `sync.sync()` зовёт `asyncio.run` в отдельном потоке, без конфликта
   с event loop aiohttp. (Подпроцесс `create_subprocess_exec` есть только в dev-сервере

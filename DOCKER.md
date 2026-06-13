@@ -56,20 +56,24 @@ docker-compose up
 
 ## Конфигурация
 
-### Переменные окружения (в `docker-compose.yml`)
+### Переменные окружения
+
+Секреты живут ТОЛЬКО в `.env` (он в .gitignore) — compose подхватывает его через
+`env_file`. Несекретные настройки — в `docker-compose.yml`:
 
 ```yaml
+env_file:
+  - .env          # TELEGRAM_BOT_TOKEN, TELEGRAM_OWNER_CHAT_ID, EVOTOR_CLOUD_TOKEN, DASHBOARD_TOKEN
 environment:
-  PORT: 8000                                                       # Порт приложения
-  TELEGRAM_BOT_TOKEN: "8516787277:AAFAVUcFQD9a2b1Ck..."          # ✅ Telegram-бот подключен
-  TELEGRAM_OWNER_CHAT_ID: "483262851,6726726002"                 # ✅ Владельцы: Кирилл + ?
+  PORT: 8000
   TELEGRAM_TZ: Europe/Moscow
-  EVOTOR_CLOUD_TOKEN: "eb303f2b-b3a8-4669-a738-afb3d6877485"     # ✅ Эвотор API активен
-  DASHBOARD_TOKEN: "26d4JUdiyevwBrZ6sWT6FV5nusEnGY7A"             # ✅ Дашборд защищен токеном
+  EVOTOR_SYNC_INTERVAL_MIN: "15"
   WEBAPP_URL: "http://localhost:8000/app"
 ```
 
-**✅ Токены уже подключены** — полный функционал готов к использованию:
+⚠️ Токены в `docker-compose.yml`/доки не вписывать — репозиторий публичный.
+
+**С заполненным `.env`** — полный функционал готов к использованию:
 - Telegram-бот пингует владельцев
 - Синхронизация данных из Эвотора каждые 15 минут
 - Утренняя сводка в 09:00 (МСК)

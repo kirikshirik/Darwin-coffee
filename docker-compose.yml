@@ -6,28 +6,19 @@ services:
     container_name: darwin-coffee
     ports:
       - "8000:8000"
+    # Секреты (TELEGRAM_BOT_TOKEN, EVOTOR_CLOUD_TOKEN, DASHBOARD_TOKEN, …) — только
+    # в .env (он в .gitignore). НИКОГДА не вписывать токены в этот файл: репозиторий
+    # публичный, однажды они уже утекли в историю и пришлось их перевыпускать.
+    env_file:
+      - .env
     environment:
-      # Локальные настройки для развития
+      # Несекретные настройки (перекрывают .env при совпадении имён)
       PORT: 8000
       TELEGRAM_TZ: Europe/Moscow
       TELEGRAM_REPORT_TIME: "09:00"
       EVOTOR_TZ: Europe/Moscow
       EVOTOR_SYNC_INTERVAL_MIN: "15"
-
-      # Локальная SQLite БД по умолчанию (remove if using Postgres)
-      # DATABASE_URL не задан → используется ./darwin.db
-
-      # ✅ Telegram бот (реальные токены)
-      TELEGRAM_BOT_TOKEN: "8516787277:AAFAVUcFQD9a2b1CkgwpsVhW43ae22HJIQE"
-      TELEGRAM_OWNER_CHAT_ID: "483262851,6726726002"
-
-      # ✅ Эвотор (реальный токен)
-      EVOTOR_CLOUD_TOKEN: "eb303f2b-b3a8-4669-a738-afb3d6877485"
-
-      # ✅ Дашборд
-      DASHBOARD_TOKEN: "26d4JUdiyevwBrZ6sWT6FV5nusEnGY7A"
-
-      # Mini App URL для Telegram
+      # DATABASE_URL не задан → локальная SQLite ./darwin.db
       WEBAPP_URL: "http://localhost:8000/app"
 
     volumes:
