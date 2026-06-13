@@ -104,6 +104,13 @@ export default function App() {
       });
       
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          const body = await response.json().catch(() => null);
+          throw new Error(body?.error || 'Нет доступа. Откройте панель через команду /dashboard у бота.');
+        }
+        if (response.status === 503) {
+          throw new Error('Сервис просыпается, повторите через минуту.');
+        }
         throw new Error(`Ошибка загрузки: ${response.status}`);
       }
       
@@ -126,13 +133,24 @@ export default function App() {
   const syncEvotor = async () => {
     if (webapp?.HapticFeedback) webapp.HapticFeedback.impactOccurred('medium');
     try {
-      const response = await fetch('/api/sync', { method: 'POST' });
+      const initData = webapp?.initData || '';
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `tma ${initData}`,
+        }
+      });
       if (response.ok) {
         if (webapp?.HapticFeedback) webapp.HapticFeedback.notificationOccurred('success');
         fetchData(period);
+      } else {
+        const body = await response.json().catch(() => null);
+        if (webapp?.HapticFeedback) webapp.HapticFeedback.notificationOccurred('error');
+        webapp?.showAlert?.(body?.error || body?.message || `Синхронизация не прошла (${response.status})`);
       }
     } catch (e) {
       console.error(e);
+      if (webapp?.HapticFeedback) webapp.HapticFeedback.notificationOccurred('error');
     }
   };
 

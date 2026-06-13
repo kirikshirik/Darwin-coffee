@@ -1,5 +1,8 @@
 node_modules
 dist
+# собранный Mini App коммитится целиком: на Render (runtime: python) нет npm,
+# и без этого исключения JS/CSS-бандлы выпадали из деплоя (в git был только index.html)
+!frontend/dist/
 .env
 .DS_Store
 

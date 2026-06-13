@@ -12,9 +12,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
+import json
 import logging
 import os
 import time
+import urllib.parse
 
 from aiohttp import web
 
@@ -88,9 +92,9 @@ async def _dashboard(request: web.Request) -> web.Response:
 
 async def _sync(request: web.Request) -> web.Response:
     from backend.integrations.evotor import sync
-    token = os.getenv("DASHBOARD_TOKEN", "").strip()
-    if token and request.query.get("key", "") != token:
-        return web.Response(status=403, text="Доступ запрещён.")
+    denied = _authorize(request)
+    if denied is not None:
+        return denied
     try:
         await asyncio.to_thread(sync.sync)
         return web.json_response({"status": "ok"})
@@ -98,11 +102,9 @@ async def _sync(request: web.Request) -> web.Response:
         log.exception("Ошибка при синхронизации")
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
-import urllib.parse
-import hmac
-import hashlib
 
 def validate_telegram_data(init_data: str, bot_token: str) -> bool:
+    """Проверить подпись initData Telegram Mini App (HMAC по схеме WebAppData)."""
     if not init_data or not bot_token:
         return False
     try:
@@ -118,33 +120,75 @@ def validate_telegram_data(init_data: str, bot_token: str) -> bool:
         log.warning(f"Ошибка валидации auth data: {e}")
         return False
 
-@web.middleware
-async def auth_middleware(request: web.Request, handler):
-    # TODO: включить TMA auth когда фронтенд правильно передаёт initData
-    # if request.path.startswith("/api/dashboard"):
-    #     auth_header = request.headers.get("Authorization", "")
-    #     if auth_header.startswith("tma "):
-    #         init_data = auth_header[4:]
-    #         bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    #         if not validate_telegram_data(init_data, bot_token):
-    #             return web.json_response({"error": "Invalid authorization data"}, status=403)
-    return await handler(request)
+
+# initData живёт в клиенте Telegram между открытиями Mini App; перехваченная строка
+# не должна работать вечно — старше суток не принимаем (Mini App при открытии выдаёт свежую).
+MAX_INITDATA_AGE_SEC = 24 * 60 * 60
+
+
+def _authorize(request: web.Request) -> web.Response | None:
+    """Доступ к финансовым API: ?key=<DASHBOARD_TOKEN> или подпись Telegram Mini App.
+
+    Подпись initData подтверждает лишь, что данные выдал Telegram для нашего бота, —
+    но не что это владелец. Поэтому дополнительно сверяем user.id со списком
+    TELEGRAM_OWNER_CHAT_ID (тот же, что у OwnerOnlyMiddleware бота) и свежесть auth_date.
+    Возвращает None при допуске, иначе — готовый ответ 401/403.
+    """
+    dash_token = os.getenv("DASHBOARD_TOKEN", "").strip()
+    if dash_token and request.query.get("key", "") == dash_token:
+        return None
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("tma "):
+        return web.json_response({"error": "Нет авторизации — откройте панель через Telegram-бота."}, status=401)
+    init_data = auth_header[4:]
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    if not validate_telegram_data(init_data, bot_token):
+        return web.json_response({"error": "Недействительная подпись Telegram."}, status=403)
+
+    parsed = dict(urllib.parse.parse_qsl(init_data))
+    try:
+        auth_age = time.time() - int(parsed.get("auth_date", "0"))
+    except ValueError:
+        auth_age = MAX_INITDATA_AGE_SEC + 1
+    if not 0 <= auth_age <= MAX_INITDATA_AGE_SEC:
+        return web.json_response({"error": "Сессия устарела — переоткройте Mini App."}, status=403)
+
+    from backend.bot.config import parse_owner_ids
+    owners = parse_owner_ids(os.getenv("TELEGRAM_OWNER_CHAT_ID", ""))
+    if owners:
+        try:
+            user_id = int(json.loads(parsed.get("user", "{}")).get("id", 0))
+        except (ValueError, TypeError, json.JSONDecodeError):
+            user_id = 0
+        if user_id not in owners:
+            return web.json_response({"error": "Доступ только для владельцев."}, status=403)
+    else:
+        log.warning("TELEGRAM_OWNER_CHAT_ID не задан — /api/* доступен любому пользователю бота")
+    return None
+
 
 async def _api_dashboard(request: web.Request) -> web.Response:
+    denied = _authorize(request)
+    if denied is not None:
+        return denied
+    await _maybe_bg_sync()  # после сна Render данные могли устареть — обновляем фоном
     period = request.query.get("period", "7д")
-    auth = request.headers.get("Authorization", "(нет)")
-    log.info(f"/api/dashboard запрос: period={period}, auth={auth[:20] if auth != '(нет)' else '(нет)'}")
     try:
-        data = dashboard.compute_json(period)
-        log.info(f"/api/dashboard OK: {len(str(data))} bytes")
-        return web.json_response(data, headers={"Access-Control-Allow-Origin": "*"})
+        # to_thread + таймаут — как у /dashboard: синхронный вызов compute_json держал бы
+        # весь event loop (поллинг бота, /healthz) на холодном старте Neon (>15сек)
+        data = await asyncio.wait_for(asyncio.to_thread(dashboard.compute_json, period), timeout=25)
+        return web.json_response(data)
+    except asyncio.TimeoutError:
+        log.warning("/api/dashboard собирался >25сек (Neon холодный старт?)")
+        return web.json_response({"error": "Сервис просыпается, повторите через минуту."}, status=503)
     except Exception as e:
         log.exception("Ошибка в /api/dashboard")
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
 async def start_health_server(port: int) -> web.AppRunner:
     """Поднять веб-сервер на 0.0.0.0:port. Вернуть runner для остановки (cleanup)."""
-    app = web.Application(middlewares=[auth_middleware])
+    app = web.Application()
     app.router.add_get("/", _ok)
     app.router.add_get("/healthz", _ok)
     app.router.add_get("/dashboard", _dashboard)

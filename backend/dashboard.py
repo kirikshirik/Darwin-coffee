@@ -26,6 +26,7 @@ import re
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal as D
 from pathlib import Path
+from typing import NamedTuple
 
 from sqlalchemy import func, select
 
@@ -194,89 +195,119 @@ _PAY_NAMES = {"ELECTRON": "Карта / СБП", "CASH": "Наличные", "CR
 _PAY_COLORS = {"ELECTRON": "var(--blue)", "CREDIT": "var(--blue)", "CASH": "var(--green)"}
 
 
-def _overview(period_str: str = "7d") -> dict:
-    today = date.today()
+class PeriodWindow(NamedTuple):
+    """Окно периода «Обзора»: [start, end) + такое же окно до него для сравнения."""
+    start: datetime
+    end: datetime
+    prev_start: datetime
+    label: str
+    days: int
+
+
+def _parse_period(period_str: str, today: date) -> PeriodWindow:
+    """Разбор периода: 7д (по умолчанию) / сег / вч / мес / YYYY-MM-DD_YYYY-MM-DD."""
     end = datetime(today.year, today.month, today.day) + timedelta(days=1)
-    
     if period_str == "сег":
         start = end - timedelta(days=1)
-        prev_start = start - timedelta(days=1)
-        label_text = "сегодня"
-        days_count = 1
-    elif period_str == "вч":
+        return PeriodWindow(start, end, start - timedelta(days=1), "сегодня", 1)
+    if period_str == "вч":
         end = end - timedelta(days=1)
         start = end - timedelta(days=1)
-        prev_start = start - timedelta(days=1)
-        label_text = "вчера"
-        days_count = 1
-    elif period_str == "мес":
+        return PeriodWindow(start, end, start - timedelta(days=1), "вчера", 1)
+    if period_str == "мес":
         start = end - timedelta(days=30)
-        prev_start = start - timedelta(days=30)
-        label_text = "30 дней"
-        days_count = 30
-    elif "_" in period_str:
+        return PeriodWindow(start, end, start - timedelta(days=30), "30 дней", 30)
+    if "_" in period_str:
         try:
-            parts = period_str.split("_")
-            start = datetime.strptime(parts[0], "%Y-%m-%d")
-            end_parsed = datetime.strptime(parts[1], "%Y-%m-%d")
+            raw_start, raw_end = period_str.split("_")
+            start = datetime.strptime(raw_start, "%Y-%m-%d")
+            end_parsed = datetime.strptime(raw_end, "%Y-%m-%d")
             end = end_parsed + timedelta(days=1)
-            days_count = (end - start).days
-            if days_count <= 0: days_count = 1
-            prev_start = start - timedelta(days=days_count)
-            label_text = f"{start.strftime('%d.%m')} - {end_parsed.strftime('%d.%m')}"
+            days = max((end - start).days, 1)
+            label = f"{start.strftime('%d.%m')} - {end_parsed.strftime('%d.%m')}"
+            return PeriodWindow(start, end, start - timedelta(days=days), label, days)
         except Exception:
-            start = end - timedelta(days=7)
-            prev_start = start - timedelta(days=7)
-            label_text = "7 дней"
-            days_count = 7
-    else: # 7д
-        start = end - timedelta(days=7)
-        prev_start = start - timedelta(days=7)
-        label_text = "7 дней"
-        days_count = 7
+            end = datetime(today.year, today.month, today.day) + timedelta(days=1)
+    start = end - timedelta(days=7)
+    return PeriodWindow(start, end, start - timedelta(days=7), "7 дней", 7)
+
+
+def _overview_data(period_str: str) -> dict:
+    """Данные «Обзора» одним проходом по БД.
+
+    Общий слой для HTML-панели (_overview) и JSON Mini App (compute_json) —
+    цифры в /dashboard и /app обязаны совпадать, поэтому запросы живут в одном месте.
+    """
+    today = date.today()
+    win = _parse_period(period_str, today)
 
     with SessionLocal() as s:
         biz = metrics.get_business_id(s)
-        cur = metrics.sales_aggregate(s, biz, start, end)
-        prev = metrics.sales_aggregate(s, biz, prev_start, start)
+        cur = metrics.sales_aggregate(s, biz, win.start, win.end)
+        prev = metrics.sales_aggregate(s, biz, win.prev_start, win.start)
         ins = insights_mod.compute(s, biz, today)
         pay = s.execute(
             select(Receipt.payment_type, func.count(), func.coalesce(func.sum(Receipt.total_sum), ZERO))
-            .where(Receipt.business_id == biz, Receipt.sold_at >= start, Receipt.sold_at < end)
+            .where(Receipt.business_id == biz, Receipt.sold_at >= win.start, Receipt.sold_at < win.end)
             .group_by(Receipt.payment_type)
         ).all()
         hour_rows = s.execute(
             select(func.extract('hour', Receipt.sold_at), func.coalesce(func.sum(Receipt.total_sum), ZERO))
-            .where(Receipt.business_id == biz, Receipt.sold_at >= start, Receipt.sold_at < end)
+            .where(Receipt.business_id == biz, Receipt.sold_at >= win.start, Receipt.sold_at < win.end)
             .group_by(func.extract('hour', Receipt.sold_at))
         ).all()
 
-        # Calculate current month's cumulative revenue
+        # выручка с начала текущего месяца — прогресс к точке безубыточности
         start_of_month = datetime(today.year, today.month, 1)
-        june_rev = s.execute(
+        mtd_revenue = s.execute(
             select(func.coalesce(func.sum(Receipt.total_sum), ZERO))
             .where(Receipt.business_id == biz, Receipt.sold_at >= start_of_month)
         ).scalar() or ZERO
 
-        # Calculate break-even target using the latest closed month's data
+        # точка безубыточности — по последнему закрытому месяцу честного P&L
         from backend.scenarios.whatif import break_even as calculate_be
-        prev_month_period = metrics.latest_month_period()
-        hm = metrics.honest_month(prev_month_period)
+        hm = metrics.honest_month(metrics.latest_month_period())
         if hm:
-            expenses = {C.COGS: hm["cogs"], **hm["operating"]}
-            be_info = calculate_be(hm["revenue"], expenses)
+            be_info = calculate_be(hm["revenue"], {C.COGS: hm["cogs"], **hm["operating"]})
             be_target = be_info.break_even_revenue
+            cogs_is_proxy = hm.get("cogs_is_proxy", False)
         else:
-            be_target = D("248423")  # Fallback
+            be_info, be_target, cogs_is_proxy = None, D("248423"), False  # запасное значение: БД пуста
 
     checks, revenue = cur['checks'], cur['revenue']
     avg = revenue / checks if checks else ZERO
     prev_avg = prev['revenue'] / prev['checks'] if prev['checks'] else ZERO
     rev_cls, rev_txt = _delta(revenue, prev['revenue'])
     avg_cls, avg_txt = _delta(avg, prev_avg)
+    progress_pct = (mtd_revenue / be_target * 100) if be_target else ZERO
 
-    progress_pct = (june_rev / be_target * 100) if be_target else ZERO
-    progress_pct_float = float(progress_pct)
+    wow = ins.wow
+    wow_txt = ('нет сравнения' if not wow or wow.revenue_change_pct is None
+               else f"{_r(wow.revenue_change_pct)}% к прошлой неделе")
+
+    return {
+        "today": today, "win": win, "ins": ins, "pay": pay,
+        "hours": {int(h): amt for h, amt in hour_rows},
+        "mtd_revenue": mtd_revenue,
+        "be_info": be_info, "be_target": be_target, "cogs_is_proxy": cogs_is_proxy,
+        "checks": checks, "revenue": revenue, "avg": avg,
+        "rev_cls": rev_cls, "rev_txt": rev_txt, "avg_cls": avg_cls, "avg_txt": avg_txt,
+        "progress_pct": progress_pct, "wow_txt": wow_txt,
+    }
+
+
+def _overview(period_str: str = "7д") -> dict:
+    """HTML-фрагменты страницы «Обзор» для шаблона панели (данные — из _overview_data)."""
+    d = _overview_data(period_str)
+    today, ins, pay, hours = d["today"], d["ins"], d["pay"], d["hours"]
+    label_text = d["win"].label
+    checks, revenue, avg = d["checks"], d["revenue"], d["avg"]
+    rev_cls, rev_txt = d["rev_cls"], d["rev_txt"]
+    avg_cls, avg_txt = d["avg_cls"], d["avg_txt"]
+    june_rev, be_target = d["mtd_revenue"], d["be_target"]
+    wow_txt = d["wow_txt"]
+
+    progress_pct_float = float(d["progress_pct"])
     progress_bar_pct = min(100.0, progress_pct_float)
     
     if june_rev >= be_target:
@@ -351,7 +382,6 @@ def _overview(period_str: str = "7d") -> dict:
             f'<div style="font-size:12px;font-weight:500;margin-top:2px">{_money(amt)}₽</div></div>'
         )
 
-    hours = {int(h): amt for h, amt in hour_rows}
     vals = [int(hours.get(h, ZERO)) for h in range(24)]
     if any(vals):
         peak = max(range(24), key=lambda h: vals[h])
@@ -359,9 +389,6 @@ def _overview(period_str: str = "7d") -> dict:
         hnote = f'<span style="color:var(--green);font-weight:600">{peak:02d}:00–{peak+1:02d}:00</span> → {share}% выручки за {label_text} (пик)'
     else:
         hnote = 'Нет продаж за период'
-
-    wow = ins.wow
-    wow_txt = 'нет сравнения' if not wow or wow.revenue_change_pct is None else f"{_r(wow.revenue_change_pct)}% к прошлой неделе"
 
     return {
         'EVOTOR_KPIS': kpis,
@@ -511,85 +538,17 @@ def compute_json(period_str: str = '7д') -> dict:
     fc = forecast.forecast_history()
     evotor_on = bool(os.getenv("EVOTOR_CLOUD_TOKEN", "").strip())
 
-    be_info = None
-    cogs_is_proxy = False
-
-    # Get raw overview data
-    today = date.today()
-    end = datetime(today.year, today.month, today.day) + timedelta(days=1)
-    
-    if period_str == "сег":
-        start = end - timedelta(days=1)
-        prev_start = start - timedelta(days=1)
-        label_text = "сегодня"
-        days_count = 1
-    elif period_str == "вч":
-        end = end - timedelta(days=1)
-        start = end - timedelta(days=1)
-        prev_start = start - timedelta(days=1)
-        label_text = "вчера"
-        days_count = 1
-    elif period_str == "мес":
-        start = end - timedelta(days=30)
-        prev_start = start - timedelta(days=30)
-        label_text = "30 дней"
-        days_count = 30
-    elif "_" in period_str:
-        try:
-            parts = period_str.split("_")
-            start = datetime.strptime(parts[0], "%Y-%m-%d")
-            end_parsed = datetime.strptime(parts[1], "%Y-%m-%d")
-            end = end_parsed + timedelta(days=1)
-            days_count = (end - start).days
-            if days_count <= 0: days_count = 1
-            prev_start = start - timedelta(days=days_count)
-            label_text = f"{start.strftime('%d.%m')} - {end_parsed.strftime('%d.%m')}"
-        except Exception:
-            start = end - timedelta(days=7)
-            prev_start = start - timedelta(days=7)
-            label_text = "7 дней"
-            days_count = 7
-    else: # 7д
-        start = end - timedelta(days=7)
-        prev_start = start - timedelta(days=7)
-        label_text = "7 дней"
-        days_count = 7
-
-    with SessionLocal() as s:
-        biz = metrics.get_business_id(s)
-        cur = metrics.sales_aggregate(s, biz, start, end)
-        prev = metrics.sales_aggregate(s, biz, prev_start, start)
-        ins = insights_mod.compute(s, biz, today)
-        pay = s.execute(
-            select(Receipt.payment_type, func.count(), func.coalesce(func.sum(Receipt.total_sum), ZERO))
-            .where(Receipt.business_id == biz, Receipt.sold_at >= start, Receipt.sold_at < end)
-            .group_by(Receipt.payment_type)
-        ).all()
-
-        start_of_month = datetime(today.year, today.month, 1)
-        june_rev = s.execute(
-            select(func.coalesce(func.sum(Receipt.total_sum), ZERO))
-            .where(Receipt.business_id == biz, Receipt.sold_at >= start_of_month)
-        ).scalar() or ZERO
-
-        from backend.scenarios.whatif import break_even as calculate_be
-        prev_month_period = metrics.latest_month_period()
-        hm = metrics.honest_month(prev_month_period)
-        if hm:
-            expenses = {C.COGS: hm["cogs"], **hm["operating"]}
-            be_info = calculate_be(hm["revenue"], expenses)
-            be_target = be_info.break_even_revenue
-            cogs_is_proxy = hm.get("cogs_is_proxy", False)
-        else:
-            be_target = D("248423")
-
-    checks, revenue = cur['checks'], cur['revenue']
-    avg = revenue / checks if checks else ZERO
-    prev_avg = prev['revenue'] / prev['checks'] if prev['checks'] else ZERO
-    rev_cls, rev_txt = _delta(revenue, prev['revenue'])
-    avg_cls, avg_txt = _delta(avg, prev_avg)
-
-    progress_pct = float((june_rev / be_target * 100) if be_target else ZERO)
+    # общий слой данных с HTML-панелью — цифры в /dashboard и /app совпадают
+    d = _overview_data(period_str)
+    today, ins = d["today"], d["ins"]
+    label_text = d["win"].label
+    checks, revenue, avg = d["checks"], d["revenue"], d["avg"]
+    rev_cls, rev_txt = d["rev_cls"], d["rev_txt"]
+    avg_cls, avg_txt = d["avg_cls"], d["avg_txt"]
+    june_rev, be_target, be_info = d["mtd_revenue"], d["be_target"], d["be_info"]
+    cogs_is_proxy = d["cogs_is_proxy"]
+    wow_txt = d["wow_txt"]
+    progress_pct = float(d["progress_pct"])
     
     top_rows_json = []
     for t in ins.top_by_profit[:5]:
@@ -605,9 +564,6 @@ def compute_json(period_str: str = '7д') -> dict:
             "margin": _r(margin),
             "marginClass": mcls
         })
-
-    wow = ins.wow
-    wow_txt = 'нет сравнения' if not wow or wow.revenue_change_pct is None else f"{_r(wow.revenue_change_pct)}% к прошлой неделе"
 
     remaining_sum = be_target - june_rev if be_target > june_rev else ZERO
 
@@ -648,8 +604,6 @@ def compute_json(period_str: str = '7д') -> dict:
         },
         "topRows": top_rows_json,
         "plTable": _build_pl_json(month, annual, period),
-        # Keep html fragments as fallback just in case
-        "htmlFragments": compute(period_str)
     }
 
 def main() -> None:
