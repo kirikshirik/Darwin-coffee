@@ -1,5 +1,9 @@
 # Деплой на VPS
 
+> Другие пути: самохостинг на своём ноутбуке Win10+WSL2+Tailscale —
+> [deploy/WSL-TAILSCALE.md](deploy/WSL-TAILSCALE.md) (текущий прод); бесплатный
+> Render+Neon — [deploy/RENDER.md](deploy/RENDER.md) (холодный резерв).
+
 Гайд по развёртыванию «Дарвина» на одном VPS (Ubuntu 22.04/24.04 или Debian 12).
 Всё держится на двух юнитах systemd:
 

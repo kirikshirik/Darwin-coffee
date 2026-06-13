@@ -11,7 +11,18 @@
       "Bash(.venv/bin/python -c \"import sqlalchemy; print\\('SQLAlchemy', sqlalchemy.__version__, 'установлен'\\)\")",
       "Bash(.venv/bin/python -m backend.seed)",
       "Bash(.venv/bin/python -m backend.report_demo)",
-      "Bash(.venv/bin/python -m backend.dashboard)"
+      "Bash(.venv/bin/python -m backend.dashboard)",
+      "Bash(.venv/bin/python -m backend.dashboard.demo)",
+      "Bash(.venv/bin/python -m backend.bot.main)",
+      "Bash(curl -s 'http://localhost:8081/api/dashboard?period=7д')",
+      "Bash(pkill -f \"backend.bot.main\")",
+      "Bash(PORT=8081 .venv/bin/python -m backend.bot.main)",
+      "Bash(curl -s 'http://localhost:8081/api/dashboard?period=7d')",
+      "Bash(git -C /Users/kirillus/Documents/Darwin-coffee status)",
+      "Bash(git -C /Users/kirillus/Documents/Darwin-coffee log --oneline --all)",
+      "Bash(git -C /Users/kirillus/Documents/Darwin-coffee log --all --grep=\"WIP\\\\|disable\\\\|TODO\" --oneline)",
+      "Bash(git -C /Users/kirillus/Documents/Darwin-coffee log --all --oneline)",
+      "Bash(.venv/bin/python -c ' *)"
     ]
   }
 }

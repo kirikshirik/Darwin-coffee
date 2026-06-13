@@ -47,8 +47,10 @@ python3 -m venv .venv
 ### БД и деплой
 - БД по умолчанию — SQLite (`darwin.db`, WAL). Прод — Postgres через `DATABASE_URL`
   (`postgresql://…` нормализуется в `psycopg`-драйвер автоматически, см. [backend/db.py](backend/db.py)).
-- VPS (systemd: бот + sync-таймер) — [DEPLOY.md](DEPLOY.md). Бесплатный Render+Neon —
-  [deploy/RENDER.md](deploy/RENDER.md) / [render.yaml](render.yaml).
+- Прод — самохостинг Win10+WSL2+Tailscale Funnel: [deploy/WSL-TAILSCALE.md](deploy/WSL-TAILSCALE.md)
+  (SQLite локально). VPS (systemd) — [DEPLOY.md](DEPLOY.md). Render+Neon —
+  [deploy/RENDER.md](deploy/RENDER.md) / [render.yaml](render.yaml) — холодный резерв
+  (бот и резерв не запускать одновременно: конфликт поллинга).
 
 ## Архитектура (большая картина)
 
