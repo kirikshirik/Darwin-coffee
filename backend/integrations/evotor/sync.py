@@ -43,7 +43,7 @@ def _store_id(store: dict) -> Optional[str]:
 
 
 async def _pull(days: int):
-    """Сетевая часть: тянем магазин, товары и чеки за N дней (без записи в БД)."""
+    """Сетевая часть: магазин, товары, сотрудники и чеки за N дней (без записи в БД)."""
     async with EvotorClient.from_env() as evotor:
         stores = await evotor.get_stores()
         if not stores:
@@ -51,14 +51,20 @@ async def _pull(days: int):
         store = stores[0]
         sid = _store_id(store)
         raw_products = await evotor.get_products(sid)
+        try:
+            raw_employees = await evotor.get_employees()
+        except EvotorAPIError as e:
+            # employees может быть недоступен на тарифе — рейтинг бариста тогда по ID
+            print(f"⚠️ /employees недоступен ({e}); имена бариста не обновлены")
+            raw_employees = []
         until = datetime.utcnow()
         since = until - timedelta(days=days)
         raw_sales = await evotor.get_sales(sid, since, until)
-    return store, raw_products, raw_sales
+    return store, raw_products, raw_employees, raw_sales
 
 
 def sync(days: int = 30, ratio: Optional[Decimal] = None) -> None:
-    store, raw_products, raw_sales = asyncio.run(_pull(days))
+    store, raw_products, raw_employees, raw_sales = asyncio.run(_pull(days))
     cogs_ratio = actuals_data.food_cost_ratio() if ratio is None else ratio
 
     with SessionLocal() as session:
@@ -69,6 +75,7 @@ def sync(days: int = 30, ratio: Optional[Decimal] = None) -> None:
             biz.evotor_store_uuid = _store_id(store)
 
         n_prod = mapping.sync_products(session, biz_id, raw_products)
+        n_emp = mapping.sync_employees(session, biz_id, raw_employees)
 
         # Прокси COGS: себестоимость позиции = цена × доля food cost (см. docstring).
         products = session.scalars(
@@ -81,6 +88,7 @@ def sync(days: int = 30, ratio: Optional[Decimal] = None) -> None:
 
     print(f"✅ Синхронизация Эвотора завершена (магазин «{store.get('name', '?')}»):")
     print(f"   товаров обработано:  {n_prod}")
+    print(f"   сотрудников:         {n_emp}")
     print(f"   новых чеков продаж:  {n_sales} (из {len(raw_sales)} документов за {days} дн.)")
     print(f"   себестоимость позиций: прокси {cogs_ratio * 100:.1f}% от цены (реальный food cost)")
     print("\nГотово. Бот теперь отвечает на живых данных: Сегодня · Неделя · Товары · Аналитика · Прогноз.")

@@ -52,6 +52,7 @@ def _ingest_samples() -> int:
     biz_id = seed.seed()
     with SessionLocal() as s:
         mapping.sync_products(s, biz_id, sample_data.PRODUCTS)
+        mapping.sync_employees(s, biz_id, sample_data.EMPLOYEES)
         added = mapping.sync_sales(s, biz_id, sample_data.DOCUMENTS, DEMO_COST_BY_NAME)
     return added
 

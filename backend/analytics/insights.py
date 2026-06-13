@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from backend.bot import metrics
 from backend.bot.metrics import TopProduct
-from backend.models import Receipt
+from backend.models import Employee, Receipt
 
 ZERO = Decimal("0")
 
@@ -94,6 +94,15 @@ def compute(session: Session, business_id: int, today: date, window_days: int = 
     if not receipts:
         return Insights(window_label=window_label, checks=0)
 
+    # Кассир чека (Receipt.cashier = close_user_id Эвотора) → имя из таблицы employees;
+    # неизвестный UUID (сотрудник удалён / employees не синкался) — короткий ID.
+    emp_names: Dict[str, str] = {
+        e.evotor_uuid: e.name
+        for e in session.scalars(
+            select(Employee).where(Employee.business_id == business_id)
+        )
+    }
+
     prod: Dict[str, List[Decimal]] = {}     # name -> [qty, revenue, profit]
     hours: Dict[int, List] = {}             # hour -> [revenue, profit, checks]
     bar: Dict[str, List] = {}               # cashier -> [revenue, profit, checks]
@@ -105,7 +114,10 @@ def compute(session: Session, business_id: int, today: date, window_days: int = 
         hc[1] += r_profit
         hc[2] += 1
 
-        name = r.cashier or "(не указан)"
+        if not r.cashier:
+            name = "(не указан)"
+        else:
+            name = emp_names.get(r.cashier) or f"Сотрудник {r.cashier[:8]}"
         bc = bar.setdefault(name, [ZERO, ZERO, 0])
         bc[0] += r.total_sum
         bc[1] += r_profit

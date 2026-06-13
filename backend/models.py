@@ -91,6 +91,22 @@ class Product(Base):
     business: Mapped["Business"] = relationship(back_populates="products")
 
 
+class Employee(Base):
+    """Сотрудник из Эвотора (GET /employees) — резолв кассира чека в имя.
+
+    Кассир чека — это close_user_id документа, он совпадает с id сотрудника
+    (проверено на живых данных; user_id документа — id аккаунта, не сотрудника).
+    """
+
+    __tablename__ = "employees"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    business_id: Mapped[int] = mapped_column(ForeignKey("businesses.id"))
+    evotor_uuid: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    role: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # ADMIN/CASHIER/…
+
+
 class Receipt(Base):
     __tablename__ = "receipts"
 

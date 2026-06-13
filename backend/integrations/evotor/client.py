@@ -145,6 +145,15 @@ class EvotorClient:
         """Каталог товаров магазина (все страницы). GET /stores/{id}/products."""
         return [p async for p in self._paginate(f"/stores/{store_id}/products")]
 
+    async def get_employees(self) -> list[dict]:
+        """Сотрудники аккаунта (все страницы). GET /employees.
+
+        Поля item: id (UUID сотрудника), name/last_name/patronymic_name, role
+        (ADMIN/CASHIER/…), stores[]. Кассир чека — close_user_id документа,
+        совпадает с id сотрудника (сверено с докой и живыми данными).
+        """
+        return [e async for e in self._paginate("/employees")]
+
     async def get_documents(
         self,
         store_id: str,

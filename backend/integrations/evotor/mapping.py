@@ -23,10 +23,14 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable, Mapping, Optional
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+import logging
+
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from backend.models import Product, Receipt, ReceiptItem
+from backend.models import Employee, Product, Receipt, ReceiptItem
+
+log = logging.getLogger(__name__)
 
 # Деньги Эвотора: на образцах — рубли. Переопределяется через окружение.
 MONEY_IN_KOPECKS = os.getenv("EVOTOR_MONEY_IN_KOPECKS", "0").strip() in ("1", "true", "True")
@@ -135,8 +139,10 @@ def map_receipt(
         sold_at=_parse_dt(_get_any(raw, "close_date", "date", default=datetime.utcnow().isoformat())),
         total_sum=total,
         payment_type=payment_type,
-        # user_id Эвотора = сотрудник, оформивший чек (UUID; имя резолвится позже).
-        cashier=_get_any(raw, "user_id", default=_get_any(body, "user_id")),
+        # Кассир — close_user_id (UUID сотрудника, см. Employee). user_id документа —
+        # это id аккаунта Эвотора (один на все чеки), оставлен как запасной вариант.
+        cashier=_get_any(raw, "close_user_id",
+                         default=_get_any(raw, "user_id", default=_get_any(body, "user_id"))),
     )
 
     for pos in _get_any(body, "positions", default=[]) or []:
@@ -158,7 +164,41 @@ def map_receipt(
     return receipt
 
 
+def map_employee(raw: Mapping, business_id: int) -> Employee:
+    """Сотрудник Эвотора → Employee. Имя собираем из name + last_name (как в ЛК)."""
+    parts = [_get_any(raw, "name"), _get_any(raw, "last_name")]
+    full = " ".join(str(p).strip() for p in parts if p and str(p).strip()) or "(без имени)"
+    return Employee(
+        business_id=business_id,
+        evotor_uuid=_get_any(raw, "id", "uuid"),
+        name=full,
+        role=_get_any(raw, "role"),
+    )
+
+
 # --- апсерт в БД ------------------------------------------------------------------
+def sync_employees(session: Session, business_id: int, raw_employees: Iterable[Mapping]) -> int:
+    """Идемпотентно записать сотрудников (для резолва кассира чека в имя)."""
+    existing = {
+        e.evotor_uuid: e
+        for e in session.scalars(
+            select(Employee).where(Employee.business_id == business_id)
+        )
+    }
+    n = 0
+    for raw in raw_employees:
+        mapped = map_employee(raw, business_id)
+        cur = existing.get(mapped.evotor_uuid)
+        if cur is None:
+            session.add(mapped)
+        else:
+            cur.name = mapped.name
+            cur.role = mapped.role
+        n += 1
+    session.commit()
+    return n
+
+
 def sync_products(session: Session, business_id: int, raw_products: Iterable[Mapping]) -> int:
     """Идемпотентно записать товары: обновить по evotor_uuid или создать новый."""
     existing = {
@@ -204,19 +244,32 @@ def sync_sales(
         cost_by_name = {p.name: p.cost_price for p in products if p.cost_price}
 
     seen = {
-        r
-        for r in session.scalars(
-            select(Receipt.receipt_uuid).where(Receipt.business_id == business_id)
+        uuid: (rid, cashier)
+        for rid, uuid, cashier in session.execute(
+            select(Receipt.id, Receipt.receipt_uuid, Receipt.cashier)
+            .where(Receipt.business_id == business_id)
         )
-        if r
+        if uuid
     }
-    added = 0
+    added = healed = 0
     for raw in raw_documents:
         receipt = map_receipt(raw, business_id, cost_by_name, product_id_by_name)
-        if receipt is None or receipt.receipt_uuid in seen:
+        if receipt is None:
+            continue
+        if receipt.receipt_uuid in seen:
+            # Лечим кассира у уже загруженных чеков: раньше сюда писался user_id
+            # документа (id аккаунта), а не close_user_id (id сотрудника).
+            rid, old_cashier = seen[receipt.receipt_uuid]
+            if rid is not None and receipt.cashier and receipt.cashier != old_cashier:
+                session.execute(
+                    update(Receipt).where(Receipt.id == rid).values(cashier=receipt.cashier)
+                )
+                healed += 1
             continue
         session.add(receipt)
-        seen.add(receipt.receipt_uuid)
+        seen[receipt.receipt_uuid] = (None, receipt.cashier)
         added += 1
     session.commit()
+    if healed:
+        log.info("Исправлен кассир у %d ранее загруженных чеков (user_id → close_user_id)", healed)
     return added

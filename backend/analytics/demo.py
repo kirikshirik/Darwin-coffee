@@ -40,6 +40,7 @@ def main() -> None:
     biz_id = seed.seed()
     with SessionLocal() as s:
         mapping.sync_products(s, biz_id, sample_data.PRODUCTS)
+        mapping.sync_employees(s, biz_id, sample_data.EMPLOYEES)
         added = mapping.sync_sales(s, biz_id, sample_data.DOCUMENTS_WEEK, DEMO_COST_BY_NAME)
     print(f"Загружено образцов чеков за 2 недели: {added}")
 
