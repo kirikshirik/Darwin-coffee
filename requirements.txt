@@ -22,5 +22,6 @@ psycopg[binary]>=3.1
 # не быть — без неё ZoneInfo("Europe/Moscow") падает (mapping.py, scheduler.py).
 tzdata>=2024.1
 
-# Добавим по мере роста проекта:
-# alembic>=1.13         # миграции БД
+# Миграции БД: схема доводится до актуальной на старте бота (backend/migrations.py);
+# живые БД, созданные ещё через create_all, авто-помечаются baseline-ревизией.
+alembic>=1.13,<2.0

@@ -46,21 +46,28 @@ def _populate(session) -> int:
 
 
 def seed() -> int:
-    # Для MVP пересоздаём схему с нуля (на проде — Alembic-миграции). СТИРАЕТ данные.
+    # Пересоздаёт схему с нуля. СТИРАЕТ данные. Схему помечаем head-ревизией Alembic,
+    # чтобы последующий upgrade_to_head() был no-op, а не пытался создавать таблицы заново.
+    from backend.migrations import stamp_head
+
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+    stamp_head()
     with SessionLocal() as session:
         return _populate(session)
 
 
 def ensure_seeded() -> int:
-    """Идемпотентно подготовить БД: создать схему и засеять, только если она пуста.
+    """Идемпотентно подготовить БД: довести схему миграциями и засеять, если пуста.
 
-    Без drop_all — безопасно дергать на каждом старте (для облачного Postgres, где
-    нет персистентного диска и схему надо накатывать при первом деплое). Если бизнес
-    уже есть — ничего не трогаем и возвращаем его id.
+    Безопасно дергать на каждом старте (для облачного Postgres, где нет персистентного
+    диска и схему надо накатывать при первом деплое). БД, созданные до Alembic,
+    upgrade_to_head() сам помечает baseline-ревизией. Если бизнес уже есть —
+    данные не трогаем и возвращаем его id.
     """
-    Base.metadata.create_all(engine)  # checkfirst=True по умолчанию → идемпотентно
+    from backend.migrations import upgrade_to_head
+
+    upgrade_to_head()
     with SessionLocal() as session:
         existing = session.scalars(select(Business)).first()
         if existing is not None:
